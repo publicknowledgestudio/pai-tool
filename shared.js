@@ -1,0 +1,189 @@
+// ── shared.js ─────────────────────────────────────────────────
+// Loaded first. Globals: state, getCurveValue, sampleGradient,
+// hexToRgb, lerpColor, rgbToHex, hslToHex, ASPECT_RATIOS,
+// addGradientStop, subdivideGradient, PALETTES
+
+const ASPECT_RATIOS = {
+  '1:1':  { w: 1, h: 1 },
+  '4:5':  { w: 4, h: 5 },
+  '16:9': { w: 16, h: 9 },
+  '9:16': { w: 9, h: 16 },
+  '1.91:1': { w: 1.91, h: 1 },
+};
+
+// ── Built-in Palettes ────────────────────────────────────────
+const PALETTES = {
+  custom: { label: 'Custom', stops: null }, // null = use state.gradientStops as-is
+
+  marketing: {
+    label: 'Marketing Warm',
+    stops: [
+      { stop: 0.00, color: '#ffb96e' },
+      { stop: 0.20, color: '#ffa958' },
+      { stop: 0.40, color: '#f66a24' },
+      { stop: 0.60, color: '#f65324' },
+      { stop: 0.80, color: '#df490b' },
+      { stop: 1.00, color: '#c72405' },
+    ],
+  },
+
+  arctic: {
+    label: 'Arctic',
+    stops: [
+      { stop: 0.0, color: '#c8e6ff' },
+      { stop: 0.5, color: '#7ec8f7' },
+      { stop: 1.0, color: '#1e88e5' },
+    ],
+  },
+};
+
+// ── Centralized State ────────────────────────────────────────
+const state = {
+  aspectRatio: '1:1',
+
+  compositionType: 'rectangle', // 'rectangle' | 'circular'
+
+  // Rectangle Composition
+  rectCount:  12,
+  spacing:    0,
+  curveType:  'parabolic',
+  flipCurve:  false,
+  symmetry:   true,
+  mirrorY:    false,
+  baseline:   'bottom',   // 'bottom' | 'top' | 'left' | 'right'
+
+  // Circular Composition
+  circleCount:     12,
+  circleDiameter:  600,
+  circleAlignment: 'bottom-center', // 9-point anchor
+  circleMirrorXY:  false,
+  circleSpacingX:  0,
+  circleSpacingY:  0,
+
+  // Shared generic
+  gradientDirection: 'horizontal',
+  extent:            0.85,       // max growth as fraction of canvas dimension
+
+  palette: 'marketing',               // key in PALETTES
+  gradientStops: JSON.parse(JSON.stringify(PALETTES.marketing.stops)),
+
+  opacity: 0.88,
+  globalOpacity: false,
+  blur:    0,
+  bgColor: '#0c0c0f',
+
+  // Layout Overlays
+  showGraphics: true,
+  showHeadline: true,
+  headlineLine1: "Start with a prompt",
+  headlineLine2: "End with a presentation",
+  headlineAlign: "center", // left, center, right
+  headlineTracking: -4.8,
+  headlineLineHeight: 1.1,
+  headlineFontSize: 120,
+  headlineFont: "400",
+
+  showImage: true,
+  imageSrc: "",
+  imageScale: 1.0,
+  imageYOffset: 0,
+  imageStrokeStyle: "marketing",
+  imageRadius: 12,
+  imageStrokeOp: 1.0,
+  imageStrokeWeight: 20,
+
+  showFooter: true,
+  footerByline: "Start for free today",
+  footerAlign: "left",
+  footerTracking: -1.63,
+  footerFont: "500",
+};
+
+// ── Curve ────────────────────────────────────────────────────
+function _bx(t, p1x, p2x) { return 3*p1x*t*(1-t)*(1-t) + 3*p2x*t*t*(1-t) + t*t*t; }
+function _by(t, p1y, p2y) { return 3*p1y*t*(1-t)*(1-t) + 3*p2y*t*t*(1-t) + t*t*t; }
+function cubicBezier(t, p1x, p1y, p2x, p2y) {
+  let tg = t;
+  for (let i = 0; i < 8; i++) {
+    const err = _bx(tg, p1x, p2x) - t;
+    const d   = 3*p1x*(1-tg)*(1-tg) + 6*(p2x-p1x)*tg*(1-tg) + 3*(1-p2x)*tg*tg;
+    if (Math.abs(d) < 1e-6) break;
+    tg = Math.max(0, Math.min(1, tg - err / d));
+  }
+  return _by(tg, p1y, p2y);
+}
+
+function getCurveValue(t, type) {
+  if (type === 'flat') return 1;
+  switch (type) {
+    case 'linear':     return t;
+    case 'quadratic':  return t * t;
+    case 'cubic':      return t * t * t;
+    case 'parabolic':  return 1 - Math.pow(2 * t - 1, 2);
+    case 'hyperbolic': return (t / (1 - 0.85 * t)) / (1 / (1 - 0.85));
+    case 'bezier':     return cubicBezier(t, 0.42, 0, 0.58, 1);
+    default:           return t;
+  }
+}
+
+// ── Color Utilities ──────────────────────────────────────────
+function hexToRgb(hex) {
+  const h = hex.replace('#','');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function rgbToHex(r, g, b) {
+  return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+}
+function lerpColor(a, b, t) {
+  return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+}
+function hslToHex(h, s, l) {
+  s/=100; l/=100;
+  const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h/30)%12,v=l-a*Math.max(-1,Math.min(k-3,9-k,1));return Math.round(v*255).toString(16).padStart(2,'0');};
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+// ── Gradient Sampling ────────────────────────────────────────
+function sampleGradient(t, stops) {
+  if (!stops||!stops.length) return [255,255,255];
+  const s = [...stops].sort((a,b)=>a.stop-b.stop);
+  if (t <= s[0].stop)            return hexToRgb(s[0].color);
+  if (t >= s[s.length-1].stop)  return hexToRgb(s[s.length-1].color);
+  for (let i=0;i<s.length-1;i++) {
+    if (t>=s[i].stop && t<=s[i+1].stop) {
+      const lt=(t-s[i].stop)/(s[i+1].stop-s[i].stop);
+      return lerpColor(hexToRgb(s[i].color), hexToRgb(s[i+1].color), lt);
+    }
+  }
+  return hexToRgb(s[s.length-1].color);
+}
+
+// ── Gradient Stop Helpers ────────────────────────────────────
+function addGradientStop(position) {
+  const t=Math.max(0,Math.min(1,position));
+  const rgb=sampleGradient(t,state.gradientStops);
+  state.gradientStops.push({stop:t, color:rgbToHex(...rgb)});
+  state.gradientStops.sort((a,b)=>a.stop-b.stop);
+}
+
+function subdivideGradient(n) {
+  const sorted=[...state.gradientStops].sort((a,b)=>a.stop-b.stop);
+  const result=[...sorted];
+  for (let i=0;i<sorted.length-1;i++) {
+    const s0=sorted[i].stop, s1=sorted[i+1].stop;
+    for (let j=1;j<=n;j++) {
+      const t=s0+(s1-s0)*(j/(n+1));
+      const rgb=sampleGradient(t,state.gradientStops);
+      result.push({stop:+t.toFixed(3), color:rgbToHex(...rgb)});
+    }
+  }
+  state.gradientStops=result.sort((a,b)=>a.stop-b.stop);
+}
+
+// Apply a named palette to gradientStops
+function applyPalette(key) {
+  const p = PALETTES[key];
+  if (!p || !p.stops) return;
+  state.gradientStops = JSON.parse(JSON.stringify(p.stops));
+}
