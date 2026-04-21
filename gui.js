@@ -545,6 +545,19 @@ const ICONS = {
   asp191x1: `<svg viewBox="0 0 16 16" width="16" height="16"><rect x="0.5" y="5.5" width="15"  height="5"   rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`,
 };
 
+const ASPECT_LABELS = {
+  '1:1':    '1:1 — Square',
+  '4:5':    '4:5 — Portrait',
+  '16:9':   '16:9 — Landscape',
+  '9:16':   '9:16 — Story',
+  '1.91:1': '1.91:1 — Wide',
+};
+function updateAspectLabel(value) {
+  const seg = document.getElementById('ctrl-aspect');
+  const lbl = seg && seg.closest('.control-row')?.querySelector('label');
+  if (lbl) lbl.textContent = ASPECT_LABELS[value] || 'Aspect Ratio';
+}
+
 // Generate a tiny SVG preview of a curve type using getCurveValue
 function curveThumbSvg(type) {
   const W = 40, H = 22, S = 32, P = 2;
@@ -770,7 +783,7 @@ function buildGUI() {
       ['9:16',   ICONS.asp9x16,  '9:16 — Story'],
       ['1.91:1', ICONS.asp191x1, '1.91:1 — Wide'],
     ],
-    onChange: () => { if (window._p5Resize) window._p5Resize(); },
+    onChange: v => { updateAspectLabel(v); if (window._p5Resize) window._p5Resize(); },
   }));
   scroll.appendChild(canvasSec.sec);
 
@@ -1072,6 +1085,7 @@ function syncControlsToState() {
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   buildGUI();
+  updateAspectLabel(state.aspectRatio);
   renderGradientBar();
   renderStopList();
   renderCurvePreview();
