@@ -498,6 +498,38 @@ input[type=color]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0.1
 .btn.primary:hover { background: #e4e4e7; }
 .btn.small { padding: 4px 8px; font-size: 12px; flex: none; }
 
+/* ── Segmented Control ────────────────────────────────────── */
+.segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--input-bg);
+}
+.seg-btn {
+  flex: 1;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+}
+.seg-btn + .seg-btn {
+  border-left: 1px solid var(--border);
+}
+.seg-btn:hover:not(.active) {
+  color: var(--text);
+  background: var(--hover-bg);
+}
+.seg-btn.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
 /* ── Curve Preview ────────────────────────────────────────── */
 #curve-preview {
   width: 100%;
