@@ -1080,6 +1080,8 @@ function syncControlsToState() {
     ['ctrl-inner-glow',  'innerGlow'],
     ['ctrl-img-multi',   'imageMulti'],
   ].forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.checked = state[key]; });
+
+  updateAspectLabel(state.aspectRatio);
 }
 
 // ── Init ──────────────────────────────────────────────────────
