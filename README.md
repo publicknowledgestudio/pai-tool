@@ -25,7 +25,7 @@ Then open http://localhost:8000.
 - `style.css` — panel + overlay styling
 - `Image Presets/` — preset images used by the Image Placeholder overlay
 - `fonts/InnovatorGrotesk-*.otf` — headline/footer font
-- `pai-wordmark.svg` — footer logo
+- `img/pai-wordmark.svg` — footer logo
 
 ## Export
 
