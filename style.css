@@ -117,7 +117,7 @@ html, body {
   background: #171717;
   border-radius: calc(12px * var(--scale));
   border: calc(20px * var(--scale)) solid #683a27;
-  box-shadow: 
+  box-shadow:
     0 calc(8px * var(--scale)) calc(12px * var(--scale)) calc(6px * var(--scale)) rgba(0,0,0,0.3),
     0 calc(4px * var(--scale)) calc(4px * var(--scale)) 0 rgba(0,0,0,0.5);
   display: flex;
@@ -125,6 +125,8 @@ html, body {
   align-items: center;
   overflow: hidden;
   transform-origin: top center;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 #image-placeholder-inner {

@@ -764,7 +764,7 @@ function buildGUI() {
   // Upload
   const fileWrap = document.createElement('div'); fileWrap.className = 'control-row';
   const fileLbl  = document.createElement('label'); fileLbl.textContent = 'Upload Image';
-  const fileInp  = document.createElement('input'); fileInp.type = 'file'; fileInp.accept = 'image/*'; fileInp.style.width = '100%';
+  const fileInp  = document.createElement('input'); fileInp.type = 'file'; fileInp.id = 'ctrl-img-upload'; fileInp.accept = 'image/*'; fileInp.style.width = '100%';
   fileInp.addEventListener('change', e => {
     if (!e.target.files.length) return;
     state.imageSrc = URL.createObjectURL(e.target.files[0]);
@@ -917,6 +917,15 @@ document.addEventListener('DOMContentLoaded', () => {
   renderStopList();
   renderCurvePreview();
   updateOverlays();
+
+  // Clicking the image placeholder on the canvas opens the file picker
+  const overlayImg = document.getElementById('overlay-image');
+  if (overlayImg) {
+    overlayImg.addEventListener('click', () => {
+      const up = document.getElementById('ctrl-img-upload');
+      if (up) up.click();
+    });
+  }
 
   // Export — delegates to sketch.js _exportCanvas
   document.getElementById('btn-export').addEventListener('click', () => {
