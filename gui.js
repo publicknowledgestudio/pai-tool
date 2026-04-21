@@ -664,7 +664,7 @@ function buildGUI() {
   graphSec.content.appendChild(cards);
 
   // Rectangle Group
-  const groupRect = document.createElement('div'); groupRect.className = 'ctrl-group' + (state.compositionType==='rectangle'?' active':'');
+  const groupRect = document.createElement('div'); groupRect.id = 'group-rect'; groupRect.className = 'ctrl-group' + (state.compositionType==='rectangle'?' active':'');
   groupRect.appendChild(mkSlider({ id:'ctrl-count',    label:'Rectangle Count',    min:2, max:40, step:1,   key:'rectCount' }));
   groupRect.appendChild(mkSlider({ id:'ctrl-spacing',  label:'Item Spacing',        min:0, max:30, step:0.5, key:'spacing', decimals:1 }));
   groupRect.appendChild(mkToggle({ id:'ctrl-symmetry', label:'Symmetry (size)',     key:'symmetry' }));
@@ -673,7 +673,7 @@ function buildGUI() {
     options:[['bottom','↑ Bottom'],['top','↓ Top'],['left','→ Left'],['right','← Right']] }));
 
   // Circular Group
-  const groupCirc = document.createElement('div'); groupCirc.className = 'ctrl-group' + (state.compositionType==='circular'?' active':'');
+  const groupCirc = document.createElement('div'); groupCirc.id = 'group-circ'; groupCirc.className = 'ctrl-group' + (state.compositionType==='circular'?' active':'');
   groupCirc.appendChild(mkSlider({ id:'ctrl-circle-count',  label:'Circle Count',     min:2,  max:40,   step:1,  key:'circleCount' }));
   groupCirc.appendChild(mkSlider({ id:'ctrl-diameter',      label:'Max Diameter',      min:50, max:2000, step:10, key:'circleDiameter' }));
   groupCirc.appendChild(mkSlider({ id:'ctrl-circle-sp-x',   label:'X Center Offset',  min:0,  max:1000, step:1,  key:'circleSpacingX' }));
@@ -844,8 +844,8 @@ function randomize() {
   document.querySelectorAll('.comp-card').forEach(c => {
     c.classList.toggle('active', c.querySelector('span').textContent.toLowerCase() === state.compositionType);
   });
-  const groupRect = document.querySelector('.ctrl-group:first-of-type');
-  const groupCirc = document.querySelector('.ctrl-group:last-of-type');
+  const groupRect = document.getElementById('group-rect');
+  const groupCirc = document.getElementById('group-circ');
   if (groupRect && groupCirc) {
     groupRect.classList.toggle('active', state.compositionType==='rectangle');
     groupCirc.classList.toggle('active', state.compositionType==='circular');
