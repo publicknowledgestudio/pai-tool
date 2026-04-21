@@ -920,22 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Export — delegates to sketch.js _exportCanvas
   document.getElementById('btn-export').addEventListener('click', () => {
-    if (window._exportCanvas) {
-      window._exportCanvas();
-    } else {
-      // Fallback: html2canvas from here
-      const artboard = document.getElementById('artboard');
-      if (!artboard) return;
-      html2canvas(artboard, {
-        backgroundColor: state.bgColor,
-        useCORS: true, allowTaint: true, scale: 2, logging: false,
-      }).then(c => {
-        const a = document.createElement('a');
-        a.download = `generative-${Date.now()}.png`;
-        a.href = c.toDataURL('image/png');
-        a.click();
-      });
-    }
+    if (window._exportCanvas) window._exportCanvas();
   });
 
   document.getElementById('btn-random').addEventListener('click', randomize);

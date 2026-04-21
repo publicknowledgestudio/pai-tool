@@ -355,27 +355,20 @@ const sketch = function(p) {
     p.redraw();
   };
 
-  // ── Export: draw everything to a fresh off-screen canvas ──
-  // We bypass html2canvas entirely to avoid cross-origin / timing issues.
-  // Instead we composite: p5 canvas pixels → HTML overlay text via SVG trick.
+  // ── Export: rasterize artboard (p5 canvas + HTML overlays) ──
   window._exportCanvas = () => {
     const artboard = document.getElementById('artboard');
     if (!artboard) return;
 
-    // Use html2canvas with explicit options for reliability
-    const scale = 2;
     html2canvas(artboard, {
       backgroundColor: state.bgColor,
       useCORS: true,
       allowTaint: true,
-      scale: scale,
+      scale: 2,
       logging: false,
       imageTimeout: 0,
       removeContainer: true,
-      // Ignore the panel overlay completely
-      ignoreElements: (el) => {
-        return el.id === 'panel' || el.classList.contains('ignore-export');
-      },
+      ignoreElements: (el) => el.id === 'panel' || el.classList.contains('ignore-export'),
     }).then(canvas => {
       const link = document.createElement('a');
       link.download = `generative-${Date.now()}.png`;
@@ -383,7 +376,7 @@ const sketch = function(p) {
       link.click();
     }).catch(err => {
       console.error('Export failed:', err);
-      // Fallback: export just the p5 canvas
+      // Fallback: export just the p5 canvas if html2canvas chokes (e.g. tainted)
       const p5canvas = document.querySelector('#p5-target canvas');
       if (p5canvas) {
         const link2 = document.createElement('a');
