@@ -651,53 +651,72 @@ function buildBgPresetsUI(sec) {
 // IMAGE PRESET + DISTRIBUTION CONTROLS
 // ══════════════════════════════════════════════════════════════
 function buildImagePresetControls(sec) {
-  // Style dropdown
+  // Style thumbnail picker
   const styleWrap = document.createElement('div'); styleWrap.className = 'control-row';
-  const styleLbl  = document.createElement('label'); styleLbl.htmlFor = 'ctrl-img-style'; styleLbl.textContent = 'Select Style';
-  const styleSel  = document.createElement('select'); styleSel.id = 'ctrl-img-style';
-  Object.keys(IMAGE_STYLES).forEach(key => {
-    const opt = document.createElement('option'); opt.value = key; opt.textContent = key.replace('style', 'Style ');
-    if (state.imageStyle === key) opt.selected = true;
-    styleSel.appendChild(opt);
+  const styleLbl  = document.createElement('label'); styleLbl.textContent = 'Style';
+  styleWrap.appendChild(styleLbl);
+  const styleRow = document.createElement('div'); styleRow.className = 'img-style-row'; styleRow.id = 'ctrl-img-style';
+  Object.entries(IMAGE_STYLES).forEach(([key, list]) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'img-thumb' + (state.imageStyle === key ? ' active' : '');
+    btn.dataset.value = key;
+    btn.title = key.replace('style', 'Style ');
+    const im = document.createElement('img');
+    im.src = list[0] || '';
+    im.alt = key;
+    im.loading = 'lazy';
+    btn.appendChild(im);
+    btn.addEventListener('click', () => {
+      state.imageStyle = key;
+      state.imageStyleIndex = 0;
+      state.imageStyleOrder = null;
+      styleRow.querySelectorAll('.img-thumb').forEach(b => b.classList.toggle('active', b.dataset.value === key));
+      rebuildImgGrid();
+      applySelectedImage();
+      updateOverlays();
+    });
+    styleRow.appendChild(btn);
   });
-  styleWrap.appendChild(styleLbl); styleWrap.appendChild(styleSel);
+  styleWrap.appendChild(styleRow);
   sec.appendChild(styleWrap);
 
-  // Image within style
+  // Image thumbnail grid within the chosen style
   const imgWrap = document.createElement('div'); imgWrap.className = 'control-row';
-  const imgLbl  = document.createElement('label'); imgLbl.htmlFor = 'ctrl-img-idx'; imgLbl.textContent = 'Select Image';
-  const imgSel  = document.createElement('select'); imgSel.id = 'ctrl-img-idx';
-  imgWrap.appendChild(imgLbl); imgWrap.appendChild(imgSel);
-
-  function rebuildImgSel() {
-    imgSel.innerHTML = '';
-    const imgs = IMAGE_STYLES[state.imageStyle] || [];
-    imgs.forEach((path, i) => {
-      const opt = document.createElement('option'); opt.value = i;
-      opt.textContent = path.split('/').pop().replace(/\.png$/i, '');
-      if (state.imageStyleIndex === i) opt.selected = true;
-      imgSel.appendChild(opt);
-    });
-  }
-  rebuildImgSel();
+  const imgLbl  = document.createElement('label'); imgLbl.textContent = 'Image';
+  imgWrap.appendChild(imgLbl);
+  const imgGrid = document.createElement('div'); imgGrid.className = 'img-idx-grid'; imgGrid.id = 'ctrl-img-idx';
+  imgWrap.appendChild(imgGrid);
   sec.appendChild(imgWrap);
 
-  // Shuffle button
+  function rebuildImgGrid() {
+    imgGrid.innerHTML = '';
+    const imgs = IMAGE_STYLES[state.imageStyle] || [];
+    imgs.forEach((path, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'img-thumb' + (state.imageStyleIndex === i ? ' active' : '');
+      btn.dataset.value = String(i);
+      btn.title = path.split('/').pop().replace(/\.png$/i, '');
+      const im = document.createElement('img'); im.src = path; im.alt = btn.title; im.loading = 'lazy';
+      btn.appendChild(im);
+      btn.addEventListener('click', () => {
+        state.imageStyleIndex = i;
+        applySelectedImage();
+        imgGrid.querySelectorAll('.img-thumb').forEach(b => b.classList.toggle('active', parseInt(b.dataset.value, 10) === i));
+        updateOverlays();
+      });
+      imgGrid.appendChild(btn);
+    });
+  }
+  rebuildImgGrid();
+
+  // Shuffle button — full width
   const shuffleRow = document.createElement('div'); shuffleRow.className = 'control-row';
   const shuffleBtn = document.createElement('button'); shuffleBtn.className = 'btn small'; shuffleBtn.id = 'btn-shuffle-imgs';
   shuffleBtn.textContent = '⇄ Shuffle Images'; shuffleBtn.style.width = '100%';
   shuffleBtn.addEventListener('click', () => { shuffleStyleImages(); updateImageDistribution(); });
   shuffleRow.appendChild(shuffleBtn); sec.appendChild(shuffleRow);
-
-  styleSel.addEventListener('change', () => {
-    state.imageStyle = styleSel.value; state.imageStyleIndex = 0; state.imageStyleOrder = null;
-    rebuildImgSel(); applySelectedImage(); updateOverlays();
-  });
-  imgSel.addEventListener('change', () => {
-    const idx = parseInt(imgSel.value, 10);
-    if (idx >= 0) { state.imageStyleIndex = idx; applySelectedImage(); }
-    updateOverlays();
-  });
 }
 
 function applySelectedImage() {
@@ -1007,14 +1026,13 @@ function syncControlsToState() {
     if (b) b.textContent = (+state[key]).toFixed(dec);
   });
 
-  // Selects
-  [
-    ['ctrl-img-style',   'imageStyle'],
-  ].forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.value = state[key]; });
-
   // Anchor grid
   const anchor = document.getElementById('ctrl-circle-align');
   if (anchor) anchor.querySelectorAll('.anchor-cell').forEach(c => c.classList.toggle('active', c.dataset.value === state.circleAlignment));
+
+  // Image style thumb
+  const styleRow = document.getElementById('ctrl-img-style');
+  if (styleRow) styleRow.querySelectorAll('.img-thumb').forEach(b => b.classList.toggle('active', b.dataset.value === state.imageStyle));
 
   syncPaletteSelect();
 
