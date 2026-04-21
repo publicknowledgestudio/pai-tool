@@ -774,7 +774,6 @@ function buildGUI() {
   hlSec.content.appendChild(mkInput({ id:'ctrl-hl-l2', label:'Line 2', key:'headlineLine2', onChange: updateOverlays }));
   hlSec.content.appendChild(mkSegmented({ id:'ctrl-hl-font',  label:'Font Type',  key:'headlineFont',  options:[['400','Regular'],['500','Medium'],['700','Bold']], onChange: updateOverlays }));
   hlSec.content.appendChild(mkSelect({ id:'ctrl-hl-align', label:'Alignment',  key:'headlineAlign', options:[['left','Left'],['center','Center'],['right','Right']], onChange: updateOverlays }));
-  hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-tracking', label:'Tracking',    min:-20, max:20,  step:0.1,  key:'headlineTracking',  decimals:1, onChange: updateOverlays }));
   hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-lh',       label:'Line Height', min:0.5, max:2.5, step:0.05, key:'headlineLineHeight', decimals:2, onChange: updateOverlays }));
   hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-fs',       label:'Font Size',   min:10,  max:300, step:1,    key:'headlineFontSize',   decimals:0, onChange: updateOverlays }));
   hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-y',        label:'Y Position',  min:0,   max:1500,step:1,    key:'headlineYPos',       decimals:0, onChange: updateOverlays }));
@@ -817,7 +816,6 @@ function buildGUI() {
   ftSec.content.appendChild(mkInput({ id:'ctrl-ft-byline',   label:'Byline',    key:'footerByline', onChange: updateOverlays }));
   ftSec.content.appendChild(mkSegmented({ id:'ctrl-ft-font',   label:'Font Type', key:'footerFont',   options:[['400','Regular'],['500','Medium'],['700','Bold']], onChange: updateOverlays }));
   ftSec.content.appendChild(mkSelect({ id:'ctrl-ft-align',  label:'Alignment', key:'footerAlign',  options:[['left','Left'],['center','Center'],['right','Right']], onChange: updateOverlays }));
-  ftSec.content.appendChild(mkSlider({ id:'ctrl-ft-tracking',label:'Tracking',  min:-10, max:20, step:0.1, key:'footerTracking', decimals:1, onChange: updateOverlays }));
   scroll.appendChild(ftSec.sec);
 }
 
