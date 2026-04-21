@@ -64,7 +64,6 @@ html, body {
   /* width/height and --scale set dynamically by sketch.js */
   /* canvas is placed inside this wrapper */
   box-shadow: 0 0 0 1px var(--border);
-  border-radius: 4px;
   overflow: hidden; /* prevents canvas bleeding */
 }
 
