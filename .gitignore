@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Node / build artifacts (in case this gains tooling)
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
