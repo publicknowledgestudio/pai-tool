@@ -527,6 +527,11 @@ const ICONS = {
   baseTop:     `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="2" y="1" width="3" height="5"/><rect x="6.5" y="1" width="3" height="11"/><rect x="11" y="1" width="3" height="5"/></svg>`,
   baseLeft:    `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="1" y="2" width="5" height="3"/><rect x="1" y="6.5" width="11" height="3"/><rect x="1" y="11" width="5" height="3"/></svg>`,
   baseRight:   `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="10" y="2" width="5" height="3"/><rect x="4" y="6.5" width="11" height="3"/><rect x="10" y="11" width="5" height="3"/></svg>`,
+  asp1x1:   `<svg viewBox="0 0 16 16" width="16" height="16"><rect x="3.5" y="3.5" width="9"   height="9"   rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`,
+  asp4x5:   `<svg viewBox="0 0 16 16" width="16" height="16"><rect x="4.5" y="2.5" width="7"   height="11"  rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`,
+  asp16x9:  `<svg viewBox="0 0 16 16" width="16" height="16"><rect x="1"   y="4.5" width="14"  height="7"   rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`,
+  asp9x16:  `<svg viewBox="0 0 16 16" width="16" height="16"><rect x="5"   y="1"   width="6"   height="14"  rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`,
+  asp191x1: `<svg viewBox="0 0 16 16" width="16" height="16"><rect x="0.5" y="5.5" width="15"  height="5"   rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>`,
 };
 
 function mkInput({ id, label, key, onChange }) {
@@ -683,9 +688,15 @@ function buildGUI() {
 
   // ── Canvas ────────────────────────────────────────────────
   const canvasSec = mkSection('Canvas');
-  canvasSec.content.appendChild(mkSelect({
+  canvasSec.content.appendChild(mkSegmented({
     id:'ctrl-aspect', label:'Aspect Ratio', key:'aspectRatio',
-    options:[['1:1','1:1 — Square'],['4:5','4:5 — Portrait'],['16:9','16:9 — Landscape'],['9:16','9:16 — Story'],['1.91:1','1.91:1 — Wide']],
+    options:[
+      ['1:1',    ICONS.asp1x1,   '1:1 — Square'],
+      ['4:5',    ICONS.asp4x5,   '4:5 — Portrait'],
+      ['16:9',   ICONS.asp16x9,  '16:9 — Landscape'],
+      ['9:16',   ICONS.asp9x16,  '9:16 — Story'],
+      ['1.91:1', ICONS.asp191x1, '1.91:1 — Wide'],
+    ],
     onChange: () => { if (window._p5Resize) window._p5Resize(); },
   }));
   scroll.appendChild(canvasSec.sec);
@@ -708,8 +719,14 @@ function buildGUI() {
   groupRect.appendChild(mkSlider({ id:'ctrl-spacing',  label:'Item Spacing',        min:0, max:30, step:0.5, key:'spacing', decimals:1 }));
   groupRect.appendChild(mkToggle({ id:'ctrl-symmetry', label:'Symmetry (size)',     key:'symmetry' }));
   groupRect.appendChild(mkToggle({ id:'ctrl-mirror-y', label:'Mirror Axis',         key:'mirrorY'  }));
-  groupRect.appendChild(mkSelect({ id:'ctrl-baseline', label:'Baseline Direction',  key:'baseline',
-    options:[['bottom','↑ Bottom'],['top','↓ Top'],['left','→ Left'],['right','← Right']] }));
+  groupRect.appendChild(mkSegmented({ id:'ctrl-baseline', label:'Baseline Direction', key:'baseline',
+    options:[
+      ['bottom', ICONS.baseBottom, 'Bottom — grow upward'],
+      ['top',    ICONS.baseTop,    'Top — grow downward'],
+      ['left',   ICONS.baseLeft,   'Left — grow rightward'],
+      ['right',  ICONS.baseRight,  'Right — grow leftward'],
+    ],
+  }));
 
   // Circular Group
   const groupCirc = document.createElement('div'); groupCirc.id = 'group-circ'; groupCirc.className = 'ctrl-group' + (state.compositionType==='circular'?' active':'');
@@ -933,8 +950,6 @@ function syncControlsToState() {
   // Selects
   [
     ['ctrl-curve',       'curveType'],
-    ['ctrl-aspect',      'aspectRatio'],
-    ['ctrl-baseline',    'baseline'],
     ['ctrl-circle-align','circleAlignment'],
     ['ctrl-palette',     'palette'],
     ['ctrl-img-style',   'imageStyle'],
@@ -942,6 +957,8 @@ function syncControlsToState() {
 
   // Segmented controls
   [
+    ['ctrl-aspect',       'aspectRatio'],
+    ['ctrl-baseline',     'baseline'],
     ['ctrl-grad-dir',     'gradientDirection'],
     ['ctrl-hl-align',     'headlineAlign'],
     ['ctrl-ft-align',     'footerAlign'],
