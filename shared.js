@@ -140,6 +140,7 @@ const state = {
   circleStagger:    0,
   circleTextLink:   false,
   circleTextPadding: 0,
+  noiseSeed:        42,
 
   // Shared
   gradientDirection: 'horizontal',
@@ -240,6 +241,26 @@ function cubicBezier(t, p1x, p1y, p2x, p2y) {
   return _by(tg, p1y, p2y);
 }
 
+// ── Seeded noise helpers ─────────────────────────────────────
+// Integer hash → float in [0, 1).  Fast and well-distributed.
+function seededHash(n) {
+  n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+  n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+  return ((n ^ (n >>> 16)) >>> 0) / 0x100000000;
+}
+// 1-D value noise: smoothly interpolates between seeded lattice points.
+// Returns [0, 1].  Changing seed gives a completely different curve shape.
+function valueNoise1D(t, seed) {
+  const GRID = 24;
+  const ft   = t * GRID;
+  const i    = Math.floor(ft);
+  const f    = ft - i;
+  const s    = f * f * (3 - 2 * f);          // smoothstep
+  const v0   = seededHash(seed * 7919 + i);
+  const v1   = seededHash(seed * 7919 + i + 1);
+  return v0 + (v1 - v0) * s;
+}
+
 function getCurveValue(t, type) {
   if (type === 'flat') return 1;
   switch (type) {
@@ -249,6 +270,7 @@ function getCurveValue(t, type) {
     case 'parabolic':  return 1 - Math.pow(2 * t - 1, 2);
     case 'hyperbolic': return (t / (1 - 0.85 * t)) / (1 / (1 - 0.85));
     case 'bezier':     return cubicBezier(t, 0.42, 0, 0.58, 1);
+    case 'noise':      return valueNoise1D(t, (typeof state !== 'undefined' ? state.noiseSeed : 1));
     default:           return t;
   }
 }

@@ -801,7 +801,7 @@ function buildGUI() {
 
   // Rectangle Group
   const groupRect = document.createElement('div'); groupRect.id = 'group-rect'; groupRect.className = 'ctrl-group' + (state.compositionType==='rectangle'?' active':'');
-  groupRect.appendChild(mkSlider({ id:'ctrl-count',    label:'Rectangle Count',    min:2, max:40, step:1,   key:'rectCount' }));
+  groupRect.appendChild(mkSlider({ id:'ctrl-count',    label:'Rectangle Count',    min:2, max:120, step:1,   key:'rectCount' }));
   groupRect.appendChild(mkSlider({ id:'ctrl-spacing',  label:'Item Spacing',        min:0, max:30, step:0.5, key:'spacing', decimals:1 }));
   groupRect.appendChild(mkToggle({ id:'ctrl-symmetry', label:'Symmetry (size)',     key:'symmetry' }));
   groupRect.appendChild(mkToggle({ id:'ctrl-mirror-y', label:'Mirror Axis',         key:'mirrorY'  }));
@@ -847,6 +847,30 @@ function buildGUI() {
   curveWrap.style.display = state.compositionType === 'circular' ? 'none' : '';
 
   curveWrap.appendChild(mkSlider({ id:'ctrl-extent', label:'Stagger/Growth Extent', min:0.05, max:1, step:0.01, key:'extent', decimals:2 }));
+
+  // Noise seed row — only visible when 'noise' curve is selected
+  const noiseSeedRow = mkSlider({ id:'ctrl-noise-seed', label:'Noise Seed', min:1, max:999, step:1, key:'noiseSeed',
+    onChange: () => redraw(),
+  });
+  noiseSeedRow.id = 'noise-seed-row';
+  noiseSeedRow.style.display = state.curveType === 'noise' ? '' : 'none';
+
+  const reseedRow = document.createElement('div');
+  reseedRow.id = 'noise-reseed-row';
+  reseedRow.className = 'control-row';
+  reseedRow.style.display = state.curveType === 'noise' ? '' : 'none';
+  const reseedBtn = document.createElement('button');
+  reseedBtn.type = 'button';
+  reseedBtn.className = 'ctrl-btn';
+  reseedBtn.textContent = '⟳  New Seed';
+  reseedBtn.addEventListener('click', () => {
+    state.noiseSeed = Math.floor(Math.random() * 999) + 1;
+    const sl = document.getElementById('ctrl-noise-seed');
+    if (sl) { sl.value = state.noiseSeed; const v = sl.closest('.control-row')?.querySelector('.val'); if (v) v.textContent = state.noiseSeed; }
+    redraw();
+  });
+  reseedRow.appendChild(reseedBtn);
+
   curveWrap.appendChild(mkSegmented({
     id:'ctrl-curve', label:'Curve Distribution', key:'curveType', variant:'grid grid-4',
     options:[
@@ -857,8 +881,17 @@ function buildGUI() {
       ['parabolic',  curveThumbSvg('parabolic'),  'Parabolic — Peak Center'],
       ['hyperbolic', curveThumbSvg('hyperbolic'), 'Hyperbolic'],
       ['bezier',     curveThumbSvg('bezier'),     'Bezier'],
+      ['noise',      curveThumbSvg('noise'),      'Noise — Organic'],
     ],
+    onChange: v => {
+      const show = v === 'noise';
+      noiseSeedRow.style.display = show ? '' : 'none';
+      reseedRow.style.display    = show ? '' : 'none';
+      redraw();
+    },
   }));
+  curveWrap.appendChild(noiseSeedRow);
+  curveWrap.appendChild(reseedRow);
   curveWrap.appendChild(mkToggle({ id:'ctrl-flip-curve', label:'Flip Curve Shape', key:'flipCurve' }));
 
   const cvWrap = document.createElement('div'); cvWrap.className = 'control-row';
@@ -989,56 +1022,34 @@ function buildGUI() {
 // RANDOMIZE
 // ══════════════════════════════════════════════════════════════
 function randomize() {
-  const curves      = ['flat','linear','quadratic','cubic','parabolic','hyperbolic','bezier'];
-  const baselines   = ['bottom','top','left','right'];
-  const circAligns  = ['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'];
-  const gradDirs    = ['horizontal','vertical'];
-  const palKeys     = Object.keys(PALETTES).filter(k => k !== 'custom');
-  const comps       = ['rectangle','circular'];
+  // ── Visual / aesthetic parameters only ───────────────────────
+  // Composition structure (type, curve, baseline, anchor, mirror,
+  // symmetry) is intentionally NOT randomised — those are manual choices.
+  const gradDirs = ['horizontal','vertical'];
+  const palKeys  = Object.keys(PALETTES).filter(k => k !== 'custom');
 
-  state.compositionType   = comps       [Math.floor(Math.random()*comps.length)];
-  state.curveType         = curves      [Math.floor(Math.random()*curves.length)];
-  state.flipCurve         = Math.random() > 0.5;
-  state.baseline          = baselines   [Math.floor(Math.random()*baselines.length)];
-  state.circleAlignment   = circAligns  [Math.floor(Math.random()*circAligns.length)];
-  state.gradientDirection = gradDirs    [Math.floor(Math.random()*gradDirs.length)];
-  state.rectCount         = Math.floor(Math.random()*28)+4;
-  state.circleCount       = Math.floor(Math.random()*15)+5;
-  state.circleDiameter    = Math.floor(Math.random()*1200)+200;
-  state.circleSpacingX    = +(Math.random()>0.7 ? Math.random()*200 : 0).toFixed(0);
-  state.circleSpacingY    = +(Math.random()>0.7 ? Math.random()*200 : 0).toFixed(0);
-  state.spacing           = 0;
-  state.extent            = +(0.4+Math.random()*0.55).toFixed(2);
-  state.opacity           = +(0.55+Math.random()*0.40).toFixed(2);
-  state.blur              = Math.random()<0.35 ? +(Math.random()*10).toFixed(1) : 0;
-  state.symmetry          = Math.random() > 0.25;
-  state.mirrorY           = Math.random() > 0.5;
-  state.circleMirrorXY    = Math.random() > 0.5;
-  state.innerGlow         = Math.random() > 0.5;
+  state.gradientDirection  = gradDirs[Math.floor(Math.random()*gradDirs.length)];
+  state.rectCount          = Math.floor(Math.random()*60)+10;   // 10–70
+  state.circleCount        = Math.floor(Math.random()*15)+5;
+  state.circleDiameter     = Math.floor(Math.random()*1200)+200;
+  state.circleSpacingX     = +(Math.random()>0.7 ? Math.random()*200 : 0).toFixed(0);
+  state.circleSpacingY     = +(Math.random()>0.7 ? Math.random()*200 : 0).toFixed(0);
+  state.spacing            = 0;
+  state.extent             = +(0.4+Math.random()*0.55).toFixed(2);
+  state.opacity            = +(0.55+Math.random()*0.40).toFixed(2);
+  state.blur               = Math.random()<0.35 ? +(Math.random()*10).toFixed(1) : 0;
+  state.innerGlow          = Math.random() > 0.5;
   state.innerGlowIntensity = +(0.3+Math.random()*0.65).toFixed(2);
+  // Always generate a fresh noise seed so noise mode looks different each time
+  state.noiseSeed = Math.floor(Math.random()*999)+1;
 
   // Pick palette and auto-apply matching bg
   state.palette = palKeys[Math.floor(Math.random()*palKeys.length)];
   applyPalette(state.palette);
 
-  // Pick a bg from the matching tone palette
-  const bgs    = getActiveBgPresets();
+  const bgs = getActiveBgPresets();
   state.bgColor = bgs[Math.floor(Math.random()*bgs.length)].color;
-
-  // Auto-adapt stroke based on tone
   state.imageStrokeStyle = (getPaletteTone() === 'cool') ? 'frosty' : 'marketing';
-
-  document.querySelectorAll('.comp-card').forEach(c => {
-    c.classList.toggle('active', c.querySelector('span').textContent.toLowerCase() === state.compositionType);
-  });
-  const groupRect = document.getElementById('group-rect');
-  const groupCirc = document.getElementById('group-circ');
-  if (groupRect && groupCirc) {
-    groupRect.classList.toggle('active', state.compositionType==='rectangle');
-    groupCirc.classList.toggle('active', state.compositionType==='circular');
-  }
-  const curveEl = document.getElementById('curve-controls-wrap');
-  if (curveEl) curveEl.style.display = state.compositionType === 'circular' ? 'none' : '';
 
   rebuildBgSwatches();
   syncControlsToState();
@@ -1056,6 +1067,7 @@ function syncControlsToState() {
     ['ctrl-circle-sp-x',        'circleSpacingX',     0],
     ['ctrl-circle-sp-y',        'circleSpacingY',     0],
     ['ctrl-circle-text-padding','circleTextPadding',  0],
+    ['ctrl-noise-seed',         'noiseSeed',          0],
     ['ctrl-spacing',           'spacing',             1],
     ['ctrl-extent',            'extent',              2],
     ['ctrl-opacity',           'opacity',             2],

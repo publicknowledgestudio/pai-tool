@@ -336,6 +336,25 @@ html, body {
   margin-bottom: 12px;
 }
 
+/* Action button used inside control rows (e.g. "New Seed") */
+.ctrl-btn {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ctrl-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--text-dim);
+}
+
 .control-row label {
   display: flex;
   justify-content: space-between;
