@@ -52,6 +52,34 @@ const PALETTES = {
   },
 };
 
+// ── Background Gradient Presets — dark gradient per palette tone ──
+const BG_GRADIENTS = {
+  marketingWarm: {
+    label: 'Warm Dark',
+    dir: 'vertical',
+    stops: [
+      { stop: 0.0, color: '#361E1C' },
+      { stop: 1.0, color: '#0C0407' },
+    ],
+  },
+  marketingCool: {
+    label: 'Cool Dark',
+    dir: 'vertical',
+    stops: [
+      { stop: 0.0, color: '#002156' },
+      { stop: 1.0, color: '#000D1F' },
+    ],
+  },
+  arctic: {
+    label: 'Arctic Dark',
+    dir: 'vertical',
+    stops: [
+      { stop: 0.0, color: '#0D2040' },
+      { stop: 1.0, color: '#010810' },
+    ],
+  },
+};
+
 // ── Background Presets — filtered by palette tone ────────────
 const BG_PALETTE_MAP = {
   warm: [
@@ -153,6 +181,16 @@ const state = {
   globalOpacity: false,
   blur:         0,
   bgColor:      '#0c0c0f',
+
+  // Background gradient mode
+  bgGradientMode:   false,
+  bgGradientPreset: null,
+  bgGradientStops:  [],
+  bgGradientDir:    'vertical',
+  bgGradientFlip:   false,
+
+  // Bar gradient flip
+  barFlipGradient: false,
 
   // ── Inner Glow (no spread — uniform across entire shape) ──
   innerGlow:          false,

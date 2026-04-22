@@ -28,8 +28,28 @@ function computeCanvasDimensions() {
 }
 
 function renderBackground(p) {
-  const [r,g,b] = hexToRgb(state.bgColor);
-  p.background(r, g, b);
+  if (state.bgGradientMode && state.bgGradientStops && state.bgGradientStops.length >= 2) {
+    const dc   = p.drawingContext;
+    const flip = state.bgGradientFlip;
+    let x0, y0, x1, y1;
+    if (state.bgGradientDir === 'horizontal') {
+      x0 = flip ? cw : 0; y0 = 0;
+      x1 = flip ? 0 : cw; y1 = 0;
+    } else {
+      x0 = 0; y0 = flip ? ch : 0;
+      x1 = 0; y1 = flip ? 0 : ch;
+    }
+    const grad = dc.createLinearGradient(x0, y0, x1, y1);
+    [...state.bgGradientStops].sort((a, b) => a.stop - b.stop).forEach(s => {
+      const [r, g, b] = hexToRgb(s.color);
+      grad.addColorStop(s.stop, `rgb(${r},${g},${b})`);
+    });
+    dc.fillStyle = grad;
+    dc.fillRect(0, 0, cw, ch);
+  } else {
+    const [r,g,b] = hexToRgb(state.bgColor);
+    p.background(r, g, b);
+  }
 }
 
 // ── computeRectFill ──────────────────────────────────────────
@@ -39,6 +59,9 @@ function computeRectFill(dc, fillT, rx, ry, rw, rh, alpha, flip) {
   const gradDir = state.gradientDirection;
   const sorted  = [...state.gradientStops].sort((a,b) => a.stop - b.stop);
 
+  // Apply global bar flip (XOR with per-rect mirror flip)
+  const ef = state.barFlipGradient ? !flip : flip;
+
   const useRectGrad =
     ( isHDist && gradDir === 'vertical') ||
     (!isHDist && gradDir === 'horizontal');
@@ -46,11 +69,11 @@ function computeRectFill(dc, fillT, rx, ry, rw, rh, alpha, flip) {
   if (useRectGrad) {
     let x0, y0, x1, y1;
     if (gradDir === 'vertical') {
-      x0=rx; y0= flip ? ry+rh : ry;
-      x1=rx; y1= flip ? ry     : ry+rh;
+      x0=rx; y0= ef ? ry+rh : ry;
+      x1=rx; y1= ef ? ry     : ry+rh;
     } else {
-      x0= flip ? rx+rw : rx; y0=ry;
-      x1= flip ? rx    : rx+rw; y1=ry;
+      x0= ef ? rx+rw : rx; y0=ry;
+      x1= ef ? rx    : rx+rw; y1=ry;
     }
     const grad = dc.createLinearGradient(x0, y0, x1, y1);
     sorted.forEach(s => {
@@ -59,7 +82,7 @@ function computeRectFill(dc, fillT, rx, ry, rw, rh, alpha, flip) {
     });
     return grad;
   } else {
-    const t       = flip ? 1 - fillT : fillT;
+    const t       = ef ? 1 - fillT : fillT;
     const [r,g,b] = sampleGradient(t, state.gradientStops);
     return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a})`;
   }
@@ -271,7 +294,8 @@ function renderCircle(p, cx, cy, radius, fillStyle, fillRgb) {
 
 // ── Helper: sample base RGB for inner glow ───────────────────
 function extractFillRgb(fillT, flip) {
-  const t = flip ? 1 - fillT : fillT;
+  const ef = state.barFlipGradient ? !flip : flip;
+  const t = ef ? 1 - fillT : fillT;
   return sampleGradient(t, state.gradientStops).map(Math.round);
 }
 
@@ -501,50 +525,222 @@ const sketch = function(p) {
     p.redraw();
   };
 
-  // ── Export: rasterize artboard (p5 canvas + HTML overlays) ──
-  window._exportCanvas = () => {
+  // ── Export: pure canvas compositor ──────────────────────────
+  // Replaces html2canvas to guarantee backdrop-filter, gradient BG,
+  // and images all render identically to what is seen on screen.
+
+  // Load an image element by src, reusing it if already decoded.
+  function _loadImg(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload  = () => resolve(img);
+      img.onerror = () => reject(new Error('img load failed: ' + src));
+      img.src = src;
+    });
+  }
+
+  // Rounded-rectangle path helper.
+  function _rrPath(ctx, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x,     y + h, r);
+    ctx.arcTo(x,     y + h, x,     y,     r);
+    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.closePath();
+  }
+
+  // Returns element's bounding rect mapped to export-canvas coordinates.
+  function _xRect(el, ab, ES) {
+    const r = el.getBoundingClientRect();
+    return {
+      x: (r.left - ab.left) * ES,
+      y: (r.top  - ab.top)  * ES,
+      w: r.width  * ES,
+      h: r.height * ES,
+    };
+  }
+
+  async function _drawImages(ctx, ab, ES) {
+    const overlay = document.getElementById('overlay-image');
+    if (!overlay || overlay.style.display === 'none') return;
+
+    const DESIGN_W = 2696;
+    const scale    = (ab.width / DESIGN_W) * ES;
+    const bw       = state.imageStrokeWeight * scale;
+    const op       = state.imageStrokeOp;
+    const rad      = Math.min(40, Math.max(0, state.imageRadius)) * scale;
+    const strokeColor = state.imageStrokeStyle === 'frosty'
+      ? `rgba(220,235,255,${op})`
+      : `rgba(104,58,39,${op})`;
+
+    const instances = overlay.querySelectorAll('.img-instance');
+    const targets   = instances.length > 0 ? Array.from(instances) : [overlay];
+
+    for (const el of targets) {
+      const rect = _xRect(el, ab, ES);
+      if (rect.w < 1 || rect.h < 1) continue;
+
+      // Background
+      _rrPath(ctx, rect.x, rect.y, rect.w, rect.h, rad);
+      ctx.fillStyle = '#171717';
+      ctx.fill();
+
+      // Image content
+      const imgEl = el.querySelector('img');
+      const imgSrc = imgEl && imgEl.src && !imgEl.src.endsWith('#') ? imgEl.src : null;
+      if (imgSrc) {
+        try {
+          // Reuse the already-decoded image when possible.
+          const loaded = (imgEl.complete && imgEl.naturalWidth > 0)
+            ? imgEl
+            : await _loadImg(imgSrc);
+          ctx.save();
+          const ir = Math.max(0, rad - bw);
+          _rrPath(ctx, rect.x + bw, rect.y + bw, rect.w - bw * 2, rect.h - bw * 2, ir);
+          ctx.clip();
+          ctx.drawImage(loaded, rect.x + bw, rect.y + bw, rect.w - bw * 2, rect.h - bw * 2);
+          ctx.restore();
+        } catch (_) { /* image missing — leave dark bg */ }
+      }
+
+      // Border
+      if (op > 0 && bw > 0) {
+        ctx.save();
+        _rrPath(ctx, rect.x + bw / 2, rect.y + bw / 2, rect.w - bw, rect.h - bw, Math.max(0, rad - bw / 2));
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth   = bw;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  async function _drawFooter(ctx, ab, ES) {
+    const footEl = document.getElementById('overlay-footer');
+    if (!footEl || footEl.style.display === 'none') return;
+
+    const rect     = _xRect(footEl, ab, ES);
+    const DESIGN_W = 2696;
+    const scale    = (ab.width / DESIGN_W) * ES;
+
+    // ── Background — solid replacement for backdrop-filter ──────
+    // (html2canvas does not support backdrop-filter;
+    //  here we composite a semi-transparent black over the already-drawn canvas.)
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+
+    // Inset top highlight (matches CSS inset box-shadow)
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillRect(rect.x, rect.y, rect.w, Math.max(1, 4 * scale));
+
+    const padL      = 45 * scale;
+    const padR      = 48.6 * scale;
+    const fontSize  = 54.517 * scale;
+    const tracking  = -1.6355 * scale;
+    const textColor = getTextColorForBg(state.bgColor);
+
+    await document.fonts.ready;
+
+    // ── Footer byline ──────────────────────────────────────────
+    ctx.save();
+    ctx.font         = `${state.footerFont} ${fontSize}px "Innovators Grotesk", sans-serif`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${tracking}px`;
+    ctx.fillStyle    = textColor;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = state.footerAlign === 'right'  ? 'right'  :
+                       state.footerAlign === 'center' ? 'center' : 'left';
+
+    const textX = state.footerAlign === 'right'  ? rect.x + rect.w - padR :
+                  state.footerAlign === 'center' ? rect.x + rect.w / 2   :
+                  rect.x + padL;
+    ctx.fillText(state.footerByline, textX, rect.y + rect.h / 2);
+    ctx.restore();
+
+    // ── Logo ───────────────────────────────────────────────────
+    try {
+      const logo  = await _loadImg('img/pai-wordmark.svg');
+      const logoH = 71.51 * scale;
+      const logoW = logo.naturalWidth * (logoH / logo.naturalHeight);
+      ctx.drawImage(logo, rect.x + rect.w - padR - logoW, rect.y + (rect.h - logoH) / 2, logoW, logoH);
+    } catch (_) { /* logo missing — skip */ }
+  }
+
+  function _drawHeadline(ctx, ab, ES) {
+    const headEl = document.getElementById('overlay-headline');
+    if (!headEl || headEl.style.display === 'none') return;
+
+    const DESIGN_W = 2696;
+    const scale    = (ab.width / DESIGN_W) * ES;
+    const EW       = ab.width * ES;
+    const fontSize = state.headlineFontSize * scale;
+    const tracking = state.headlineTracking * scale;
+    const padL     = state.headlinePadding * scale;
+    const padR     = state.headlinePadding * scale;
+    const textColor = getTextColorForBg(state.bgColor);
+
+    ctx.save();
+    ctx.font         = `${state.headlineFont} ${fontSize}px "Innovators Grotesk", sans-serif`;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${tracking}px`;
+    ctx.fillStyle    = textColor;
+    ctx.textBaseline = 'top';
+    ctx.textAlign    = state.headlineAlign === 'center' ? 'center' :
+                       state.headlineAlign === 'right'  ? 'right'  : 'left';
+
+    const textX = state.headlineAlign === 'center' ? EW / 2 :
+                  state.headlineAlign === 'right'  ? EW - padR :
+                  padL;
+
+    const l1 = document.getElementById('headline-l1');
+    const l2 = document.getElementById('headline-l2');
+    [l1, l2].forEach(el => {
+      if (!el || !el.textContent) return;
+      const er = _xRect(el, ab, ES);
+      ctx.fillText(el.textContent, textX, er.y);
+    });
+    ctx.restore();
+  }
+
+  window._exportCanvas = async () => {
+    const ES  = 2;                      // export pixel multiplier (2× = retina)
+    const EW  = cw * ES;
+    const EH  = ch * ES;
     const artboard = document.getElementById('artboard');
     if (!artboard) return;
+    const ab = artboard.getBoundingClientRect();
 
-    html2canvas(artboard, {
-      backgroundColor: state.bgColor,
-      useCORS: true,
-      allowTaint: true,
-      scale: 2,
-      logging: false,
-      imageTimeout: 0,
-      removeContainer: true,
-      ignoreElements: (el) => el.id === 'panel' || el.classList.contains('ignore-export'),
-    }).then(canvas => {
-      canvas.toBlob(blob => {
-        if (!blob) throw new Error('Canvas toBlob failed');
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `generative-${Date.now()}.png`;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 'image/png');
-    }).catch(err => {
-      console.error('Export failed:', err);
-      // Fallback: export just the p5 canvas if html2canvas chokes (e.g. tainted)
-      const p5canvas = document.querySelector('#p5-target canvas');
-      if (p5canvas) {
-        p5canvas.toBlob(blob => {
-          if (!blob) return;
-          const url = URL.createObjectURL(blob);
-          const link2 = document.createElement('a');
-          link2.download = `generative-shapes-${Date.now()}.png`;
-          link2.href = url;
-          document.body.appendChild(link2);
-          link2.click();
-          document.body.removeChild(link2);
-          URL.revokeObjectURL(url);
-        }, 'image/png');
-      }
-    });
+    // 1. Create export canvas
+    const exp = document.createElement('canvas');
+    exp.width  = EW;
+    exp.height = EH;
+    const ctx  = exp.getContext('2d');
+
+    // 2. Draw p5 canvas (background + graphics)
+    const p5c = document.querySelector('#p5-target canvas');
+    if (p5c) ctx.drawImage(p5c, 0, 0, EW, EH);
+
+    // 3. Composite overlays: image → headline → footer (top-most last)
+    try {
+      if (state.showImage)    await _drawImages(ctx, ab, ES);
+      if (state.showHeadline)       _drawHeadline(ctx, ab, ES);
+      if (state.showFooter)  await _drawFooter(ctx, ab, ES);
+    } catch (err) {
+      console.warn('Export overlay error:', err);
+    }
+
+    // 4. Emit PNG
+    exp.toBlob(blob => {
+      if (!blob) { console.error('Export toBlob failed'); return; }
+      const url  = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `generative-${Date.now()}.png`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
   };
 };
 

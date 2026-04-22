@@ -754,6 +754,51 @@ input[type=color]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0.1
   box-shadow: 0 0 0 2px var(--accent);
 }
 
+/* ── Background Gradient Preset Buttons ──────────────────── */
+.bg-grad-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.bg-grad-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  min-width: 52px;
+}
+
+.bg-grad-btn:hover {
+  border-color: var(--text-dim);
+  color: var(--text);
+}
+
+.bg-grad-btn.active {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--hover-bg);
+}
+
+.bg-grad-swatch {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
 /* ── Image Thumb Pickers ─────────────────────────────────── */
 .img-style-row {
   display: grid;

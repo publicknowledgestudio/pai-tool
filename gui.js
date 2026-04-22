@@ -379,6 +379,11 @@ function buildGradientSection(sec) {
     ],
   }));
 
+  sec.appendChild(mkToggle({
+    id: 'ctrl-bar-flip-grad', label: 'Flip Bar Gradient', key: 'barFlipGradient',
+    onChange: () => redraw(),
+  }));
+
   const barOuter = document.createElement('div'); barOuter.className = 'grad-bar-outer';
   const bar = document.createElement('canvas'); bar.id = 'grad-bar'; bar.width = 260; bar.height = 28;
   const markers = document.createElement('div'); markers.id = 'grad-markers'; markers.className = 'grad-markers';
@@ -646,18 +651,88 @@ function mkSubLabel(text, mt = 16) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// BG PRESET SWATCHES (dynamic)
+// BG PRESET SWATCHES + GRADIENT PRESETS (dynamic)
 // ══════════════════════════════════════════════════════════════
 function buildBgPresetsUI(sec) {
+  // ── Flat colour swatches ──────────────────────────────────
   const wrap = document.createElement('div'); wrap.className = 'control-row';
-  const lbl  = document.createElement('label'); lbl.textContent = 'Background Presets';
+  const lbl  = document.createElement('label'); lbl.textContent = 'BG Colour Presets';
   wrap.appendChild(lbl);
-
   const row = document.createElement('div'); row.className = 'bg-swatch-row'; row.id = 'bg-swatch-container';
   wrap.appendChild(row);
   sec.appendChild(wrap);
-  // Initial population
   rebuildBgSwatches();
+
+  // ── Gradient BG presets ───────────────────────────────────
+  sec.appendChild(mkSubLabel('BG Gradient Presets', 14));
+
+  const gradWrap = document.createElement('div'); gradWrap.className = 'control-row';
+  const gradRow  = document.createElement('div'); gradRow.className = 'bg-grad-row'; gradRow.id = 'bg-grad-container';
+
+  // "Solid" reset button
+  const noneBtn = document.createElement('button');
+  noneBtn.type = 'button';
+  noneBtn.className = 'bg-grad-btn' + (!state.bgGradientMode ? ' active' : '');
+  noneBtn.dataset.key = 'none';
+  noneBtn.title = 'Solid colour (no BG gradient)';
+  const noneSw = document.createElement('span'); noneSw.className = 'bg-grad-swatch';
+  noneSw.style.background = '#0c0c0f';
+  const noneLbl = document.createElement('span'); noneLbl.textContent = 'Solid';
+  noneBtn.appendChild(noneSw); noneBtn.appendChild(noneLbl);
+  noneBtn.addEventListener('click', () => {
+    state.bgGradientMode = false;
+    _syncBgGradBtns();
+    redraw();
+  });
+  gradRow.appendChild(noneBtn);
+
+  // One button per BG_GRADIENTS entry
+  Object.entries(BG_GRADIENTS).forEach(([key, preset]) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bg-grad-btn' + (state.bgGradientMode && state.bgGradientPreset === key ? ' active' : '');
+    btn.dataset.key = key;
+    btn.title = preset.label;
+
+    const css = preset.stops.map(s => `${s.color} ${(s.stop * 100).toFixed(0)}%`).join(', ');
+    const sw  = document.createElement('span'); sw.className = 'bg-grad-swatch';
+    sw.style.background = `linear-gradient(to bottom, ${css})`;
+    const cap = document.createElement('span'); cap.textContent = preset.label;
+    btn.appendChild(sw); btn.appendChild(cap);
+
+    btn.addEventListener('click', () => {
+      state.bgGradientMode   = true;
+      state.bgGradientPreset = key;
+      state.bgGradientStops  = JSON.parse(JSON.stringify(preset.stops));
+      state.bgGradientDir    = preset.dir || 'vertical';
+      _syncBgGradBtns();
+      redraw();
+    });
+    gradRow.appendChild(btn);
+  });
+
+  function _syncBgGradBtns() {
+    gradRow.querySelectorAll('.bg-grad-btn').forEach(b => {
+      const on = b.dataset.key === 'none'
+        ? !state.bgGradientMode
+        : (state.bgGradientMode && state.bgGradientPreset === b.dataset.key);
+      b.classList.toggle('active', on);
+    });
+    const flipRow = document.getElementById('bg-grad-flip-row');
+    if (flipRow) flipRow.style.display = state.bgGradientMode ? '' : 'none';
+  }
+
+  gradWrap.appendChild(gradRow);
+  sec.appendChild(gradWrap);
+
+  // BG gradient flip — visible only when gradient mode is on
+  const bgFlipRow = mkToggle({
+    id: 'ctrl-bg-grad-flip', label: 'Flip BG Gradient', key: 'bgGradientFlip',
+    onChange: () => redraw(),
+  });
+  bgFlipRow.id = 'bg-grad-flip-row';
+  bgFlipRow.style.display = state.bgGradientMode ? '' : 'none';
+  sec.appendChild(bgFlipRow);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1130,6 +1205,8 @@ function syncControlsToState() {
     ['ctrl-depth-shadow',      'depthShadow'],
     ['ctrl-inner-glow',        'innerGlow'],
     ['ctrl-img-multi',         'imageMulti'],
+    ['ctrl-bar-flip-grad',     'barFlipGradient'],
+    ['ctrl-bg-grad-flip',      'bgGradientFlip'],
   ].forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.checked = state[key]; });
 
   updateAspectLabel(state.aspectRatio);
