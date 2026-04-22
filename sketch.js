@@ -357,50 +357,50 @@ function getHeadlineBBox() {
 function renderCircularComposition(p) {
   const count = Math.max(2, Math.floor(state.circleCount));
   const maxD  = state.circleDiameter;
-  // Minimum is 25% of max so smallest circles remain visible and proportional
+  // Smallest circle is 25 % of max diameter (floored at 60 px) so it stays visible.
   const minD  = Math.max(60, maxD * 0.25);
   const maxR  = maxD / 2;
+  const minR  = minD / 2;
   const dc    = p.drawingContext;
   const align = state.circleAlignment;
 
-  // ── Compute fixed anchor using LARGEST circle (default behavior) ──
-  // All circles share one center; largest circle's edge touches the anchor boundary.
-  // circleFlipAnchor reverses this: each circle aligns its own edge to anchor.
+  // ── Anchor reference radius ───────────────────────────────────
+  // All circles share one concentric centre point.  The "reference radius"
+  // determines which circle sits exactly at the anchor boundary:
+  //
+  //   circleFlipAnchor = false (default)
+  //     refR = maxR  → largest circle's edge is at the anchor boundary;
+  //                    smaller circles nest inside and do not reach the edge.
+  //
+  //   circleFlipAnchor = true  (flip)
+  //     refR = minR  → smallest circle's edge is at the anchor boundary;
+  //                    larger circles bleed beyond the boundary (no deformation).
+  const refR = state.circleFlipAnchor ? minR : maxR;
+
+  // Compute the shared centre once, from refR.
   let anchorX = cw / 2, anchorY = ch / 2;
 
   if (state.circleTextLink) {
-    // Text-driven X: offset circles to right of headline bounding box
+    // Text-driven X: position circles to the right of the headline bounding box.
     const bbox = getHeadlineBBox();
-    if (bbox) {
-      anchorX = bbox.x + bbox.w + state.circleTextPadding;
-    }
+    if (bbox) anchorX = bbox.x + bbox.w + state.circleTextPadding;
   } else {
-    if (align.includes('left'))       anchorX = maxR;
-    else if (align.includes('right')) anchorX = cw - maxR;
+    if      (align.includes('left'))  anchorX = refR;
+    else if (align.includes('right')) anchorX = cw - refR;
   }
-  if (align.includes('top'))          anchorY = maxR;
-  else if (align.includes('bottom'))  anchorY = ch - maxR;
+  if      (align.includes('top'))    anchorY = refR;
+  else if (align.includes('bottom')) anchorY = ch - refR;
+
+  // Every circle shares this same centre — flat/concentric distribution.
+  const cx = anchorX;
+  const cy = anchorY;
 
   for (let i = 0; i < count; i++) {
     const fillT    = count > 1 ? i / (count - 1) : 0;
-    const currentD = maxD - (maxD - minD) * fillT;
+    const currentD = maxD - (maxD - minD) * fillT;  // largest → smallest
     const R        = currentD / 2;
 
-    let cx, cy;
-
-    if (state.circleFlipAnchor) {
-      // Flipped: each circle's own edge aligns to anchor (smallest circle at anchor edge)
-      cx = cw / 2; cy = ch / 2;
-      if (align.includes('left'))       cx = R;
-      else if (align.includes('right')) cx = cw - R;
-      if (align.includes('top'))        cy = R;
-      else if (align.includes('bottom')) cy = ch - R;
-    } else {
-      // Default: all circles share the anchor center → largest circle at anchor edge
-      cx = anchorX;
-      cy = anchorY;
-    }
-
+    // moveAndDraw applies the optional fine-tune spacing offset, then renders.
     function moveAndDraw(px, py, flipX = false) {
       const vx = px - cw / 2, vy = py - ch / 2;
       const dx = Math.abs(vx) < 0.5 ? 0 : Math.sign(vx);
@@ -417,15 +417,15 @@ function renderCircularComposition(p) {
     moveAndDraw(cx, cy, false);
 
     if (state.circleMirrorXY) {
-      // Cartesian plane mirror: reflect around canvas center on each axis.
-      // Circles bleed outside canvas when large — geometry is never deformed.
+      // Cartesian-plane mirror: reflect the shared centre around the canvas midpoint.
+      // Circles may bleed outside the canvas — geometry is never scaled or deformed.
       const mx = cw - cx;
       const my = ch - cy;
       const notCenterH = Math.abs(cx - cw / 2) > 0.5;
       const notCenterV = Math.abs(cy - ch / 2) > 0.5;
-      if (notCenterH)                moveAndDraw(mx, cy,  true);
-      if (notCenterV)                moveAndDraw(cx, my,  false);
-      if (notCenterH && notCenterV)  moveAndDraw(mx, my,  true);
+      if (notCenterH)               moveAndDraw(mx, cy, true);
+      if (notCenterV)               moveAndDraw(cx, my, false);
+      if (notCenterH && notCenterV) moveAndDraw(mx, my, true);
     }
   }
 }

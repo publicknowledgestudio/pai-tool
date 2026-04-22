@@ -820,7 +820,7 @@ function buildGUI() {
   groupCirc.appendChild(mkSlider({ id:'ctrl-diameter',      label:'Max Diameter',    min:50, max:2000, step:10, key:'circleDiameter' }));
   groupCirc.appendChild(mkAnchorGrid({ id:'ctrl-circle-align', label:'Anchor Position', key:'circleAlignment' }));
   groupCirc.appendChild(mkToggle({ id:'ctrl-circle-mirror',      label:'Mirror X & Y Axis',             key:'circleMirrorXY'   }));
-  groupCirc.appendChild(mkToggle({ id:'ctrl-circle-flip-anchor', label:'Flip Anchor (smallest at edge)', key:'circleFlipAnchor' }));
+  groupCirc.appendChild(mkToggle({ id:'ctrl-circle-flip-anchor', label:'Flip Anchor — smallest at boundary', key:'circleFlipAnchor' }));
   groupCirc.appendChild(mkSubLabel('Text-Aware Positioning'));
   groupCirc.appendChild(mkToggle({
     id:'ctrl-circle-text-link', label:'Link X to Headline', key:'circleTextLink',
