@@ -153,6 +153,11 @@ const state = {
   innerGlow:          false,
   innerGlowIntensity: 0.6,
 
+  // ── Depth Shadow (now edge highlight reflection) ──
+  depthShadow: true,
+  dsSpread: 0.28,
+  dsOpacity: 0.50,
+
   // Layout Overlays
   showGraphics: true,
   showHeadline: true,

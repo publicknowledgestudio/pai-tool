@@ -65,30 +65,105 @@ function computeRectFill(dc, fillT, rx, ry, rw, rh, alpha, flip) {
   }
 }
 
+// ── Edge Highlight — simple gradient overlay ──────────────────
+// Produces the luminous banding artefact between stacked shapes:
+// a bright white gradient at the "tip" edge of each shape that fades
+// inward. When shapes overlap the highlights from adjacent layers
+// create glowing seam lines — like light caught between stacked surfaces.
+// All inside the clip — zero background bleed, no tricks.
+
+// ── applyInnerShadowRect ─────────────────────────────────────
+// White gradient at the tip edges of the shape.
+// Vertical bars: highlight on left/right faces.
+// Horizontal bars: highlight on top/bottom faces.
+function applyInnerShadowRect(dc, rx, ry, rw, rh, flipX, flipY) {
+  if (!state.depthShadow) return;
+  if (rw < 1 || rh < 1) return;
+
+  const isV    = rh >= rw;
+  const fadeLen = Math.min(rw, rh) * state.dsSpread;
+  const softAlpha = (Math.max(0, state.dsOpacity * 0.36)).toFixed(3);
+
+  if (isV) {
+    // Vertical bars -> highlight on sides. Primary on left by default.
+    const primaryX1 = rx;
+    const primaryX2 = rx + fadeLen;
+    const secondaryX1 = rx + rw;
+    const secondaryX2 = rx + rw - fadeLen;
+
+    const usePrimaryRight = flipX; // If mirrored horizontally, primary light is on the right
+    
+    const g1X1 = usePrimaryRight ? secondaryX1 : primaryX1;
+    const g1X2 = usePrimaryRight ? secondaryX2 : primaryX2;
+    const g1 = dc.createLinearGradient(g1X1, ry, g1X2, ry);
+    g1.addColorStop(0, `rgba(255,255,255,${state.dsOpacity})`);
+    g1.addColorStop(1, 'rgba(255,255,255,0)');
+    dc.fillStyle = g1;
+    dc.fillRect(rx, ry, rw, rh);
+
+    const g2X1 = usePrimaryRight ? primaryX1 : secondaryX1;
+    const g2X2 = usePrimaryRight ? primaryX2 : secondaryX2;
+    const g2 = dc.createLinearGradient(g2X1, ry, g2X2, ry);
+    g2.addColorStop(0, `rgba(255,255,255,${softAlpha})`);
+    g2.addColorStop(1, 'rgba(255,255,255,0)');
+    dc.fillStyle = g2;
+    dc.fillRect(rx, ry, rw, rh);
+  } else {
+    // Horizontal bars -> highlight on top/bottom edges. Primary on top by default.
+    const primaryY1 = ry;
+    const primaryY2 = ry + fadeLen;
+    const secondaryY1 = ry + rh;
+    const secondaryY2 = ry + rh - fadeLen;
+
+    const usePrimaryBottom = flipY; // If mirrored vertically, primary light is on bottom
+
+    const g1Y1 = usePrimaryBottom ? secondaryY1 : primaryY1;
+    const g1Y2 = usePrimaryBottom ? secondaryY2 : primaryY2;
+    const g1 = dc.createLinearGradient(rx, g1Y1, rx, g1Y2);
+    g1.addColorStop(0, `rgba(255,255,255,${state.dsOpacity})`);
+    g1.addColorStop(1, 'rgba(255,255,255,0)');
+    dc.fillStyle = g1;
+    dc.fillRect(rx, ry, rw, rh);
+
+    const g2Y1 = usePrimaryBottom ? primaryY1 : secondaryY1;
+    const g2Y2 = usePrimaryBottom ? primaryY2 : secondaryY2;
+    const g2 = dc.createLinearGradient(rx, g2Y1, rx, g2Y2);
+    g2.addColorStop(0, `rgba(255,255,255,${softAlpha})`);
+    g2.addColorStop(1, 'rgba(255,255,255,0)');
+    dc.fillStyle = g2;
+    dc.fillRect(rx, ry, rw, rh);
+  }
+}
+
+// ── applyInnerShadowCircle ───────────────────────────────────
+// Radial white rim from the outer edge inward — creates luminous
+// arc banding between overlapping circles.
+function applyInnerShadowCircle(dc, cx, cy, radius) {
+  if (!state.depthShadow) return;
+  if (radius < 0.5) return;
+
+  const inner = radius * (1 - state.dsSpread);
+  const grad  = dc.createRadialGradient(cx, cy, inner, cx, cy, radius);
+  grad.addColorStop(0,   'rgba(255,255,255,0)');
+  grad.addColorStop(0.6, 'rgba(255,255,255,0.08)');
+  grad.addColorStop(1,   `rgba(255,255,255,${state.dsOpacity})`);
+
+  dc.fillStyle = grad;
+  dc.beginPath();
+  dc.arc(cx, cy, radius, 0, Math.PI * 2);
+  dc.fill();
+}
+
 // ── applyInnerGlow ───────────────────────────────────────────
 // Uniform gradient-based inner illumination — no blur/filter.
-// Covers the ENTIRE shape with a soft radial brightening from center.
-// The glow radius equals the half-diagonal of the shape so the
-// gradient reaches every corner/edge before fading out.
-//
-// Strategy:
-//   • Bright highlight color (base → lighter) fills center
-//   • A linear-mapped radial from r=0 to r=halfDiag
-//   • Stops: 0% opaque-bright → 60% semi-bright → 100% transparent
-// This creates a smooth "internal illumination" that enhances the
-// gradient without replacing it.
 function applyInnerGlow(dc, cx, cy, rw, rh, fillRgb) {
   const intensity = Math.max(0, Math.min(1, state.innerGlowIntensity));
+  const halfDiag  = Math.sqrt(rw * rw + rh * rh) * 0.5;
 
-  // Radius = half-diagonal so glow kisses every corner of the rect
-  const halfDiag = Math.sqrt(rw * rw + rh * rh) * 0.5;
-
-  // Bright highlight: push each channel toward white by intensity
   const br = Math.min(255, Math.round(fillRgb[0] + (255 - fillRgb[0]) * intensity * 0.9));
   const bg = Math.min(255, Math.round(fillRgb[1] + (255 - fillRgb[1]) * intensity * 0.9));
   const bb = Math.min(255, Math.round(fillRgb[2] + (255 - fillRgb[2]) * intensity * 0.9));
 
-  // Core alpha at center — make it proportional to intensity
   const a0 = (intensity * 0.85).toFixed(3);
   const a1 = (intensity * 0.40).toFixed(3);
 
@@ -101,7 +176,6 @@ function applyInnerGlow(dc, cx, cy, rw, rh, fillRgb) {
   dc.fillRect(cx - rw/2, cy - rh/2, rw, rh);
 }
 
-// Same for circles — use radius directly (already a circle so half-diagonal = radius)
 function applyInnerGlowCircle(dc, cx, cy, radius, fillRgb) {
   const intensity = Math.max(0, Math.min(1, state.innerGlowIntensity));
 
@@ -118,15 +192,14 @@ function applyInnerGlowCircle(dc, cx, cy, radius, fillRgb) {
   grad.addColorStop(1.00, `rgba(${br},${bg},${bb},0)`);
 
   dc.fillStyle = grad;
-  dc.fill(); // path is already set (circle arc from clip)
+  dc.fill();
 }
 
 // ── renderRect ───────────────────────────────────────────────
-// Blur: applied as a real canvas filter BEFORE filling, then a second
-// filtered pass layered at higher alpha to make it visible.
-function renderRect(p, rx, ry, rw, rh, fillStyle, fillRgb) {
+function renderRect(p, rx, ry, rw, rh, fillStyle, fillRgb, flipX, flipY) {
   if (rw < 1 || rh < 1) return;
   const dc = p.drawingContext;
+
   dc.save();
   dc.beginPath();
   dc.rect(rx, ry, rw, rh);
@@ -147,7 +220,10 @@ function renderRect(p, rx, ry, rw, rh, fillStyle, fillRgb) {
     dc.filter      = 'none';
   }
 
-  // Inner glow — gradient-only, no filters
+  // Inner shadow — defined edge within clip, no background bleed
+  applyInnerShadowRect(dc, rx, ry, rw, rh, flipX, flipY);
+
+  // Inner glow — gradient-only radial, no filters
   if (state.innerGlow && fillRgb) {
     applyInnerGlow(dc, rx + rw/2, ry + rh/2, rw, rh, fillRgb);
   }
@@ -159,6 +235,7 @@ function renderRect(p, rx, ry, rw, rh, fillStyle, fillRgb) {
 function renderCircle(p, cx, cy, radius, fillStyle, fillRgb) {
   if (radius < 0.5) return;
   const dc = p.drawingContext;
+
   dc.save();
   dc.beginPath();
   dc.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -178,6 +255,9 @@ function renderCircle(p, cx, cy, radius, fillStyle, fillRgb) {
     dc.globalAlpha = 1;
     dc.filter      = 'none';
   }
+
+  // Inner shadow — defined edge within clip
+  applyInnerShadowCircle(dc, cx, cy, radius);
 
   // Inner glow
   if (state.innerGlow && fillRgb) {
@@ -222,6 +302,8 @@ function renderComposition(p) {
       tCurve = count > 1 ? i / (count - 1) : 1;
     }
     tCurve = Math.max(0, Math.min(1, tCurve));
+    const isPastCenter = count > 1 && (i >= count / 2);
+    const symFlip = sym && isPastCenter;
     let tVal = getCurveValue(tCurve, state.curveType);
     if (state.flipCurve) tVal = 1 - tVal;
 
@@ -232,23 +314,23 @@ function renderComposition(p) {
 
     const rects = [];
     if (dir === 'bottom') {
-      rects.push({ rx: slotC-slotSize/2, ry: ch-growth, rw: slotSize, rh: growth, flip: false });
-      if (mirror) rects.push({ rx: slotC-slotSize/2, ry: 0, rw: slotSize, rh: growth, flip: true });
+      rects.push({ rx: slotC-slotSize/2, ry: ch-growth, rw: slotSize, rh: growth, flipX: symFlip, flipY: false, fillFlip: false });
+      if (mirror) rects.push({ rx: slotC-slotSize/2, ry: 0, rw: slotSize, rh: growth, flipX: symFlip, flipY: true, fillFlip: true });
     } else if (dir === 'top') {
-      rects.push({ rx: slotC-slotSize/2, ry: 0, rw: slotSize, rh: growth, flip: false });
-      if (mirror) rects.push({ rx: slotC-slotSize/2, ry: ch-growth, rw: slotSize, rh: growth, flip: true });
+      rects.push({ rx: slotC-slotSize/2, ry: 0, rw: slotSize, rh: growth, flipX: symFlip, flipY: false, fillFlip: false });
+      if (mirror) rects.push({ rx: slotC-slotSize/2, ry: ch-growth, rw: slotSize, rh: growth, flipX: symFlip, flipY: true, fillFlip: true });
     } else if (dir === 'left') {
-      rects.push({ rx: 0, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flip: false });
-      if (mirror) rects.push({ rx: cw-growth, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flip: true });
+      rects.push({ rx: 0, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flipX: false, flipY: symFlip, fillFlip: false });
+      if (mirror) rects.push({ rx: cw-growth, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flipX: true, flipY: symFlip, fillFlip: true });
     } else {
-      rects.push({ rx: cw-growth, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flip: false });
-      if (mirror) rects.push({ rx: 0, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flip: true });
+      rects.push({ rx: cw-growth, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flipX: false, flipY: symFlip, fillFlip: false });
+      if (mirror) rects.push({ rx: 0, ry: slotC-slotSize/2, rw: growth, rh: slotSize, flipX: true, flipY: symFlip, fillFlip: true });
     }
 
-    rects.forEach(({ rx, ry, rw, rh, flip }) => {
-      const fill    = computeRectFill(dc, fillT, rx, ry, rw, rh, alpha, flip);
-      const fillRgb = state.innerGlow ? extractFillRgb(fillT, flip) : null;
-      renderRect(p, rx, ry, rw, rh, fill, fillRgb);
+    rects.forEach(({ rx, ry, rw, rh, flipX, flipY, fillFlip }) => {
+      const fill    = computeRectFill(dc, fillT, rx, ry, rw, rh, alpha, fillFlip);
+      const fillRgb = state.innerGlow ? extractFillRgb(fillT, fillFlip) : null;
+      renderRect(p, rx, ry, rw, rh, fill, fillRgb, flipX, flipY);
     });
   }
 }
@@ -370,19 +452,33 @@ const sketch = function(p) {
       removeContainer: true,
       ignoreElements: (el) => el.id === 'panel' || el.classList.contains('ignore-export'),
     }).then(canvas => {
-      const link = document.createElement('a');
-      link.download = `generative-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      canvas.toBlob(blob => {
+        if (!blob) throw new Error('Canvas toBlob failed');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `generative-${Date.now()}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
     }).catch(err => {
       console.error('Export failed:', err);
       // Fallback: export just the p5 canvas if html2canvas chokes (e.g. tainted)
       const p5canvas = document.querySelector('#p5-target canvas');
       if (p5canvas) {
-        const link2 = document.createElement('a');
-        link2.download = `generative-shapes-${Date.now()}.png`;
-        link2.href = p5canvas.toDataURL('image/png');
-        link2.click();
+        p5canvas.toBlob(blob => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const link2 = document.createElement('a');
+          link2.download = `generative-shapes-${Date.now()}.png`;
+          link2.href = url;
+          document.body.appendChild(link2);
+          link2.click();
+          document.body.removeChild(link2);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
       }
     });
   };

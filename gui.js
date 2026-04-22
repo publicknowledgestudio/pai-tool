@@ -883,10 +883,18 @@ function buildGUI() {
     id:'ctrl-blur', label:'Blur (inner)', min:0, max:20, step:0.5, key:'blur', decimals:1,
   }));
 
-  // ── Inner Glow ─────────────────────────────────────────────
-  graphSec.content.appendChild(mkSubLabel('Inner Glow'));
-  graphSec.content.appendChild(mkToggle({ id:'ctrl-inner-glow', label:'Enable Inner Glow', key:'innerGlow' }));
-  // Only intensity — spread removed
+  // ── Depth & Effects ────────────────────────────────────────
+  graphSec.content.appendChild(mkSubLabel('Depth & Effects'));
+  graphSec.content.appendChild(mkToggle({
+    id: 'ctrl-depth-shadow', label: 'Depth Shadow', key: 'depthShadow',
+  }));
+  graphSec.content.appendChild(mkSlider({
+    id:'ctrl-ds-spread', label:'Shadow Spread', min:0.01, max:1, step:0.01, key:'dsSpread', decimals:2,
+  }));
+  graphSec.content.appendChild(mkSlider({
+    id:'ctrl-ds-opacity', label:'Shadow Opacity', min:0, max:1, step:0.01, key:'dsOpacity', decimals:2,
+  }));
+  graphSec.content.appendChild(mkToggle({ id:'ctrl-inner-glow', label:'Inner Glow', key:'innerGlow' }));
   graphSec.content.appendChild(mkSlider({
     id:'ctrl-glow-intensity', label:'Glow Intensity', min:0, max:1, step:0.01, key:'innerGlowIntensity', decimals:2,
   }));
@@ -1026,6 +1034,8 @@ function syncControlsToState() {
     ['ctrl-extent',       'extent',             2],
     ['ctrl-opacity',      'opacity',            2],
     ['ctrl-blur',         'blur',               1],
+    ['ctrl-ds-spread',    'dsSpread',           2],
+    ['ctrl-ds-opacity',   'dsOpacity',          2],
     ['ctrl-glow-intensity','innerGlowIntensity',2],
     ['ctrl-hl-y',         'headlineYPos',       0],
     ['ctrl-hl-pad',       'headlinePadding',    0],
@@ -1072,13 +1082,14 @@ function syncControlsToState() {
 
   // Checkboxes
   [
-    ['ctrl-symmetry',    'symmetry'],
-    ['ctrl-mirror-y',    'mirrorY'],
-    ['ctrl-flip-curve',  'flipCurve'],
+    ['ctrl-symmetry',     'symmetry'],
+    ['ctrl-mirror-y',     'mirrorY'],
+    ['ctrl-flip-curve',   'flipCurve'],
     ['ctrl-circle-mirror','circleMirrorXY'],
-    ['ctrl-global-op',   'globalOpacity'],
-    ['ctrl-inner-glow',  'innerGlow'],
-    ['ctrl-img-multi',   'imageMulti'],
+    ['ctrl-global-op',    'globalOpacity'],
+    ['ctrl-depth-shadow', 'depthShadow'],
+    ['ctrl-inner-glow',   'innerGlow'],
+    ['ctrl-img-multi',    'imageMulti'],
   ].forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.checked = state[key]; });
 
   updateAspectLabel(state.aspectRatio);
