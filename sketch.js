@@ -635,10 +635,26 @@ const sketch = function(p) {
     const DESIGN_W = 2696;
     const scale    = (ab.width / DESIGN_W) * ES;
 
-    // ── Background — solid replacement for backdrop-filter ──────
-    // backdrop-filter: blur(100px) is not exportable; approximate its
-    // darkening effect by using a higher opacity than the CSS 0.6 value.
-    ctx.fillStyle = 'rgba(0,0,0,0.82)';
+    // ── Replicate backdrop-filter: blur(100px) + rgba(0,0,0,0.6) ──
+    // 1. Snapshot everything already drawn on the export canvas.
+    // 2. Clip to footer rect, redraw snapshot through a blur filter —
+    //    this is the canvas equivalent of backdrop-filter: blur().
+    // 3. Overlay rgba(0,0,0,0.6) to match the CSS background colour.
+    const blurRadius = Math.round(100 * (ab.width / 2696) * ES);
+    const snap = document.createElement('canvas');
+    snap.width  = ctx.canvas.width;
+    snap.height = ctx.canvas.height;
+    snap.getContext('2d').drawImage(ctx.canvas, 0, 0);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.filter = `blur(${blurRadius}px)`;
+    ctx.drawImage(snap, 0, 0);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
 
     // Inset top highlight (matches CSS inset box-shadow)
