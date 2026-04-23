@@ -112,13 +112,9 @@ html, body {
   /* subtle hint while editing */
   box-shadow: inset 0 -2px 0 0 currentColor;
 }
-/* Highlighted word fill — background-color set via JS style attribute */
+/* Highlighted words — colour set via inline style="color:..." */
 .headline-hl {
-  border-radius: calc(4px * var(--scale));
-  padding: 0 calc(4px * var(--scale));
-  color: inherit;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+  /* color is set inline by JS; no background, no padding */
 }
 
 /* Image Placeholder Overlay */

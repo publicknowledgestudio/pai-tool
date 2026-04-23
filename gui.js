@@ -193,7 +193,7 @@ function _renderHeadlineHTML() {
     return line.replace(/(\S+)/g, (word) => {
       const clean = word.replace(/[^a-zA-Z0-9''-]/g, '').toLowerCase();
       if (hlWords.has(clean)) {
-        return `<span class="headline-hl" style="background:${hlColor}">${word}</span>`;
+        return `<span class="headline-hl" style="color:${hlColor}">${word}</span>`;
       }
       return word;
     });

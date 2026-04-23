@@ -727,18 +727,7 @@ const sketch = function(p) {
     );
     const hlColor = state.headlineHighlightColor || '#f66a24';
 
-    // ── Draw highlighted word rects from DOM spans ─────────────
-    if (hlWords.size > 0) {
-      const [hr, hg, hb] = hexToRgb(hlColor);
-      headEl.querySelectorAll('.headline-hl').forEach(span => {
-        const sr  = _xRect(span, ab, ES);
-        const pad = 4 * scale;
-        ctx.fillStyle = `rgb(${hr},${hg},${hb})`;
-        ctx.fillRect(sr.x - pad * 0.5, sr.y - pad * 0.5, sr.w + pad, sr.h + pad);
-      });
-    }
-
-    // ── Draw text lines ────────────────────────────────────────
+    // ── Draw all text in base colour ───────────────────────────
     const lines = (state.headlineText || '').split('\n');
     ctx.fillStyle = textColor;
     let y = textStartY;
@@ -746,6 +735,19 @@ const sketch = function(p) {
       if (line.trim()) ctx.fillText(line, textX, y);
       y += lineH;
     });
+
+    // ── Overdraw highlighted words in their text colour ─────────
+    // Span bounding rects give exact absolute positions; switch to
+    // left-align and use the span's x so text lands at the right spot.
+    if (hlWords.size > 0) {
+      const [hr, hg, hb] = hexToRgb(hlColor);
+      ctx.fillStyle = `rgb(${hr},${hg},${hb})`;
+      ctx.textAlign = 'left';
+      headEl.querySelectorAll('.headline-hl').forEach(span => {
+        const sr = _xRect(span, ab, ES);
+        ctx.fillText(span.textContent, sr.x, sr.y);
+      });
+    }
 
     ctx.restore();
   }
