@@ -11,6 +11,32 @@ const ASPECT_RATIOS = {
   '1.91:1': { w: 1.91, h: 1 },
 };
 
+// ── Per-Aspect-Ratio Layout Defaults ────────────────────────
+// Applied automatically when the user switches aspect ratio.
+// All values use the 2696px design-unit coordinate system
+// (same as the CSS --scale calculations).
+//
+// 1:1 values derived from Figma node 95:50741 (1410×1410 canvas).
+// Conversion: value_in_state = figma_px × (2696 / 1410).
+const ASPECT_RATIO_DEFAULTS = {
+  '1:1': {
+    // Headline — centred, large, ~11% from top
+    headlineFontSize:   175,   // 91.7px × 1.912
+    headlineYPos:       298,   // 156px  × 1.912
+    headlineTracking:   -7.0,  // −4 % of 175
+    headlineLineHeight: 1.1,
+    headlineAlign:      'center',
+    headlineFont:       '400',
+    headlinePadding:    0,
+    // Image card — fills lower ~52 % of canvas
+    imageScale:         1.46,  // 1270px / 869px (default rendered width)
+    imageYOffset:       604,   // (608 − 292.6) × 1.912  (292.6 = CSS base top at 1410px)
+    imageRadius:        18,    // 9.17px × 1.912
+    // Background
+    bgColor:            '#000000',
+  },
+};
+
 // ── Built-in Palettes ────────────────────────────────────────
 const PALETTES = {
   custom: { label: 'Custom', stops: null },
@@ -173,7 +199,7 @@ const state = {
   opacity:      0.88,
   globalOpacity: false,
   blur:         0,
-  bgColor:      '#0c0c0f',
+  bgColor:      '#000000',
 
   // Background gradient mode
   bgGradientMode:   false,
@@ -200,19 +226,19 @@ const state = {
   headlineLine1:      'Start with a prompt',
   headlineLine2:      'End with a presentation',
   headlineAlign:      'center',
-  headlineTracking:   -4.8,
+  headlineTracking:   -7.0,
   headlineLineHeight: 1.1,
-  headlineFontSize:   120,
+  headlineFontSize:   175,
   headlineFont:       '400',
-  headlineYPos:       206.36,
+  headlineYPos:       298,
   headlinePadding:    0,
 
   showImage:       true,
   imageSrc:        '',
-  imageScale:      1.0,
-  imageYOffset:    0,
+  imageScale:      1.46,
+  imageYOffset:    604,
   imageStrokeStyle: 'marketing',
-  imageRadius:     12,              // clamped 0–40 in GUI
+  imageRadius:     18,              // clamped 0–40 in GUI
   imageStrokeOp:   1.0,
   imageStrokeWeight: 20,
 

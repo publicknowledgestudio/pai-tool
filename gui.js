@@ -858,7 +858,16 @@ function buildGUI() {
       ['9:16',   ICONS.asp9x16,  '9:16 — Story'],
       ['1.91:1', ICONS.asp191x1, '1.91:1 — Wide'],
     ],
-    onChange: v => { updateAspectLabel(v); if (window._p5Resize) window._p5Resize(); },
+    onChange: v => {
+      updateAspectLabel(v);
+      const defaults = ASPECT_RATIO_DEFAULTS[v];
+      if (defaults) {
+        Object.assign(state, defaults);
+        syncControlsToState();
+        updateOverlays();
+      }
+      if (window._p5Resize) window._p5Resize();
+    },
   }));
   scroll.appendChild(canvasSec.sec);
 
