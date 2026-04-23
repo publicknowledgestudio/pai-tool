@@ -13,25 +13,19 @@ function redraw() {
 // OVERLAY UPDATER
 // ══════════════════════════════════════════════════════════════
 
-// Compute and apply adaptive text color + drop shadow based on bg luma
+// Apply explicit text colours (user-controlled via colour pickers). No auto-glow.
 function applyTextAdaptation() {
-  const textColor  = getTextColorForBg(state.bgColor);
-  const isLight    = textColor === '#000000';
-  // Subtle shadow: opposite of text color
-  const shadowColor = isLight ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)';
-  const shadow      = `0 1px 6px ${shadowColor}, 0 2px 12px ${shadowColor}`;
-
   // Headline
   document.querySelectorAll('.headline-text').forEach(el => {
-    el.style.color      = textColor;
-    el.style.textShadow = shadow;
+    el.style.color      = state.headlineTextColor || '#ffffff';
+    el.style.textShadow = 'none';
   });
 
   // Footer byline
   const bylineEl = document.getElementById('footer-byline');
   if (bylineEl) {
-    bylineEl.style.color      = textColor;
-    bylineEl.style.textShadow = shadow;
+    bylineEl.style.color      = state.footerTextColor || '#ffffff';
+    bylineEl.style.textShadow = 'none';
   }
 }
 
@@ -180,29 +174,68 @@ function buildInnerPlaceholder(src) {
   return wrap;
 }
 
+// Build innerHTML for headline: wrap highlight words in .headline-hl spans.
+// Only called when the headline element is NOT focused (to avoid caret disruption).
+function _renderHeadlineHTML() {
+  const hlWords = new Set(
+    (state.headlineHighlightWords || '')
+      .split(/[\s,]+/)
+      .map(w => w.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  if (hlWords.size === 0) return null; // signal: use textContent instead
+
+  const hlColor = state.headlineHighlightColor || '#f66a24';
+  // Process each line, wrapping whole-word matches in spans
+  const lines = (state.headlineText || '').split('\n');
+  const htmlLines = lines.map(line => {
+    // Split on word boundaries but preserve spaces
+    return line.replace(/(\S+)/g, (word) => {
+      const clean = word.replace(/[^a-zA-Z0-9''-]/g, '').toLowerCase();
+      if (hlWords.has(clean)) {
+        return `<span class="headline-hl" style="background:${hlColor}">${word}</span>`;
+      }
+      return word;
+    });
+  });
+  return htmlLines.join('<br>');
+}
+
 function updateOverlays() {
-  const h1         = document.getElementById('headline-l1');
-  const h2         = document.getElementById('headline-l2');
+  const headEl      = document.getElementById('headline-text');
   const overlayHead = document.getElementById('overlay-headline');
   const overlayFoot = document.getElementById('overlay-footer');
   const byline      = document.getElementById('footer-byline');
 
-  if (h1 && h2 && overlayHead) {
+  if (headEl && overlayHead) {
     // Don't stomp the caret while the user is editing in-place
-    if (document.activeElement !== h1) h1.textContent = state.headlineLine1;
-    if (document.activeElement !== h2) h2.textContent = state.headlineLine2;
+    if (document.activeElement !== headEl) {
+      const html = _renderHeadlineHTML();
+      if (html !== null) {
+        headEl.innerHTML = html;
+      } else {
+        headEl.textContent = state.headlineText || '';
+      }
+    }
+
     overlayHead.style.textAlign    = state.headlineAlign;
     overlayHead.style.display      = state.showHeadline ? 'flex' : 'none';
     overlayHead.style.top          = `calc(${state.headlineYPos}px * var(--scale))`;
     overlayHead.style.paddingLeft  = `calc(${state.headlinePadding}px * var(--scale))`;
     overlayHead.style.paddingRight = `calc(${state.headlinePadding}px * var(--scale))`;
+    // Headline fill background
+    if (state.headlineFillEnabled) {
+      const [fr, fg, fb] = hexToRgb(state.headlineFillColor || '#000000');
+      overlayHead.style.background = `rgba(${fr},${fg},${fb},${state.headlineFillOpacity})`;
+    } else {
+      overlayHead.style.background = 'transparent';
+    }
 
-    [h1, h2].forEach(el => {
-      el.style.letterSpacing = `calc(${state.headlineTracking}px * var(--scale))`;
-      el.style.lineHeight    = state.headlineLineHeight;
-      el.style.fontSize      = `calc(${state.headlineFontSize}px * var(--scale))`;
-      el.style.fontWeight    = state.headlineFont;
-    });
+    headEl.style.letterSpacing = `calc(${state.headlineTracking}px * var(--scale))`;
+    headEl.style.lineHeight    = state.headlineLineHeight;
+    headEl.style.fontSize      = `calc(${state.headlineFontSize}px * var(--scale))`;
+    headEl.style.fontWeight    = state.headlineFont;
+    headEl.style.width         = '100%';
   }
 
   updateImageDistribution();
@@ -612,6 +645,18 @@ function mkInput({ id, label, key, onChange }) {
   const inp  = document.createElement('input'); inp.type = 'text'; inp.id = id; inp.value = state[key]; inp.className = 'text-input';
   inp.addEventListener('input', () => { state[key] = inp.value; if (onChange) onChange(state[key]); });
   wrap.appendChild(lbl); wrap.appendChild(inp);
+  return wrap;
+}
+
+function mkTextarea({ id, label, key, rows = 3, onChange }) {
+  const wrap = document.createElement('div'); wrap.className = 'control-row';
+  const lbl  = document.createElement('label'); lbl.htmlFor = id; lbl.textContent = label;
+  const ta   = document.createElement('textarea');
+  ta.id = id; ta.rows = rows; ta.className = 'text-input textarea-input';
+  ta.style.resize = 'vertical';
+  ta.value = state[key] || '';
+  ta.addEventListener('input', () => { state[key] = ta.value; if (onChange) onChange(state[key]); });
+  wrap.appendChild(lbl); wrap.appendChild(ta);
   return wrap;
 }
 
@@ -1042,8 +1087,16 @@ function buildGUI() {
 
   // ── Headline ─────────────────────────────────────────────
   const hlSec = mkSection('Headline', 'showHeadline');
-  hlSec.content.appendChild(mkInput({ id:'ctrl-hl-l1', label:'Line 1', key:'headlineLine1', onChange: updateOverlays }));
-  hlSec.content.appendChild(mkInput({ id:'ctrl-hl-l2', label:'Line 2', key:'headlineLine2', onChange: updateOverlays }));
+  hlSec.content.appendChild(mkTextarea({ id:'ctrl-hl-text',   label:'Text',              key:'headlineText',           rows:3,  onChange: updateOverlays }));
+  hlSec.content.appendChild(mkInput(  { id:'ctrl-hl-words',   label:'Highlight Words',   key:'headlineHighlightWords',          onChange: updateOverlays }));
+  hlSec.content.appendChild(mkSubLabel('Colours', 8));
+  hlSec.content.appendChild(mkColor(  { id:'ctrl-hl-color',   label:'Text Colour',       key:'headlineTextColor',               onChange: updateOverlays }));
+  hlSec.content.appendChild(mkColor(  { id:'ctrl-hl-hl-color',label:'Highlight Colour',  key:'headlineHighlightColor',          onChange: updateOverlays }));
+  hlSec.content.appendChild(mkSubLabel('Fill', 8));
+  hlSec.content.appendChild(mkToggle( { id:'ctrl-hl-fill',    label:'Fill Behind Text',  key:'headlineFillEnabled',             onChange: updateOverlays }));
+  hlSec.content.appendChild(mkColor(  { id:'ctrl-hl-fill-col',label:'Fill Colour',       key:'headlineFillColor',               onChange: updateOverlays }));
+  hlSec.content.appendChild(mkSlider( { id:'ctrl-hl-fill-op', label:'Fill Opacity',      min:0, max:1, step:0.01, key:'headlineFillOpacity', decimals:2, onChange: updateOverlays }));
+  hlSec.content.appendChild(mkSubLabel('Typography', 8));
   hlSec.content.appendChild(mkSegmented({ id:'ctrl-hl-font',  label:'Font Type',  key:'headlineFont',  options:[['400','Regular'],['500','Medium'],['700','Bold']], onChange: updateOverlays }));
   hlSec.content.appendChild(mkSegmented({ id:'ctrl-hl-align', label:'Alignment', key:'headlineAlign',
     options:[['left', ICONS.alignLeft, 'Left'],['center', ICONS.alignCenter, 'Center'],['right', ICONS.alignRight, 'Right']],
@@ -1051,7 +1104,7 @@ function buildGUI() {
   hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-lh',       label:'Line Height', min:0.5, max:2.5, step:0.05, key:'headlineLineHeight', decimals:2, onChange: updateOverlays }));
   hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-fs',       label:'Font Size',   min:10,  max:300, step:1,    key:'headlineFontSize',   decimals:0, onChange: updateOverlays }));
   hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-y',        label:'Y Position',  min:0,   max:1500,step:1,    key:'headlineYPos',       decimals:0, onChange: updateOverlays }));
-  hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-pad',      label:'L/R Padding', min:0,   max:400, step:1,    key:'headlinePadding',    decimals:0, onChange: updateOverlays }));
+  hlSec.content.appendChild(mkSlider({ id:'ctrl-hl-pad',      label:'L/R Padding', min:0,   max:700, step:1,    key:'headlinePadding',    decimals:0, onChange: updateOverlays }));
   scroll.appendChild(hlSec.sec);
 
   // ── Image Placeholder ────────────────────────────────────
@@ -1094,7 +1147,8 @@ function buildGUI() {
 
   // ── Footer ───────────────────────────────────────────────
   const ftSec = mkSection('Footer', 'showFooter');
-  ftSec.content.appendChild(mkInput({ id:'ctrl-ft-byline',   label:'Byline',    key:'footerByline', onChange: updateOverlays }));
+  ftSec.content.appendChild(mkInput({ id:'ctrl-ft-byline',   label:'Byline',       key:'footerByline',   onChange: updateOverlays }));
+  ftSec.content.appendChild(mkColor({ id:'ctrl-ft-color',    label:'Text Colour',  key:'footerTextColor', onChange: updateOverlays }));
   ftSec.content.appendChild(mkSegmented({ id:'ctrl-ft-font',   label:'Font Type', key:'footerFont',   options:[['400','Regular'],['500','Medium'],['700','Bold']], onChange: updateOverlays }));
   ftSec.content.appendChild(mkSegmented({ id:'ctrl-ft-align', label:'Alignment', key:'footerAlign',
     options:[['left', ICONS.alignLeft, 'Left'],['center', ICONS.alignCenter, 'Center'],['right', ICONS.alignRight, 'Right']],
@@ -1199,8 +1253,28 @@ function syncControlsToState() {
     seg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.value === String(state[key])));
   });
 
-  // Color
-  const bg = document.getElementById('ctrl-bgcolor'); if (bg) bg.value = state.bgColor;
+  // Color pickers
+  [
+    ['ctrl-bgcolor',      'bgColor'],
+    ['ctrl-hl-color',     'headlineTextColor'],
+    ['ctrl-hl-hl-color',  'headlineHighlightColor'],
+    ['ctrl-hl-fill-col',  'headlineFillColor'],
+    ['ctrl-ft-color',     'footerTextColor'],
+  ].forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.value = state[key]; });
+
+  // Text areas / inputs
+  const hlTa = document.getElementById('ctrl-hl-text');
+  if (hlTa) hlTa.value = state.headlineText || '';
+  const hlWords = document.getElementById('ctrl-hl-words');
+  if (hlWords) hlWords.value = state.headlineHighlightWords || '';
+
+  // Sliders — fill opacity
+  const fillOp = document.getElementById('ctrl-hl-fill-op');
+  if (fillOp) {
+    fillOp.value = state.headlineFillOpacity;
+    const b = fillOp.closest('.control-row')?.querySelector('.val');
+    if (b) b.textContent = (+state.headlineFillOpacity).toFixed(2);
+  }
 
   // Checkboxes
   [
@@ -1216,6 +1290,7 @@ function syncControlsToState() {
     ['ctrl-img-multi',         'imageMulti'],
     ['ctrl-bar-flip-grad',     'barFlipGradient'],
     ['ctrl-bg-grad-flip',      'bgGradientFlip'],
+    ['ctrl-hl-fill',           'headlineFillEnabled'],
   ].forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.checked = state[key]; });
 
   updateAspectLabel(state.aspectRatio);
@@ -1239,24 +1314,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Inline-editable headlines on the canvas, kept in sync with panel inputs
-  [
-    { el: 'headline-l1', stateKey: 'headlineLine1', inputId: 'ctrl-hl-l1' },
-    { el: 'headline-l2', stateKey: 'headlineLine2', inputId: 'ctrl-hl-l2' },
-  ].forEach(({ el, stateKey, inputId }) => {
-    const node = document.getElementById(el);
-    if (!node) return;
-    node.contentEditable = 'true';
-    node.spellcheck = false;
-    node.addEventListener('input', () => {
-      state[stateKey] = node.textContent;
-      const inp = document.getElementById(inputId);
-      if (inp) inp.value = state[stateKey];
+  // Inline-editable headline on the canvas, kept in sync with panel textarea
+  const hlNode = document.getElementById('headline-text');
+  if (hlNode) {
+    hlNode.contentEditable = 'true';
+    hlNode.spellcheck = false;
+    // On focus: switch to plain-text mode so user edits raw text
+    hlNode.addEventListener('focus', () => {
+      hlNode.textContent = state.headlineText || '';
     });
-    node.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); node.blur(); }
+    hlNode.addEventListener('input', () => {
+      state.headlineText = hlNode.innerText;
+      const ta = document.getElementById('ctrl-hl-text');
+      if (ta) ta.value = state.headlineText;
     });
-  });
+    hlNode.addEventListener('blur', () => {
+      // Re-apply highlights on blur
+      updateOverlays();
+    });
+  }
 
   // Export — delegates to sketch.js _exportCanvas
   document.getElementById('btn-export').addEventListener('click', () => {

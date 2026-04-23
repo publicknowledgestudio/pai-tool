@@ -36,17 +36,19 @@ const _ORIGINAL_DEFAULTS = {
 
 const ASPECT_RATIO_DEFAULTS = {
   '1:1': {
-    // Headline — centred, large, ~11% from top
-    headlineFontSize:   175,   // 91.7px × 1.912
-    headlineYPos:       298,   // 156px  × 1.912
-    headlineTracking:   -7.0,  // −4 % of 175
+    // Headline — from Figma node 206:78927 (1410×1410 canvas, scale 2696/1410 = 1.912)
+    // Container: top=0, py=112px → text starts at 112px from top (top-aligned, keeping padding)
+    // Text: fontSize=77px, tracking=-3.08px (−4%), lineHeight=1.1, centered, width=1056.194px
+    headlineFontSize:   147,   // 77px × 1.912
+    headlineYPos:       214,   // 112px × 1.912  (top padding = where text starts)
+    headlineTracking:   -5.9,  // -3.08px × 1.912
     headlineLineHeight: 1.1,
     headlineAlign:      'center',
     headlineFont:       '400',
-    headlinePadding:    0,
-    // Image card — fills lower ~52 % of canvas
+    headlinePadding:    338,   // (1410−1056.194)/2 × 1.912 — constrains text width to match Figma
+    // Image card — fills lower portion of canvas
     imageScale:         1.46,  // 1270px / 869px (default rendered width)
-    imageYOffset:       604,   // (608 − 292.6) × 1.912  (292.6 = CSS base top at 1410px)
+    imageYOffset:       604,   // (608 − 292.6) × 1.912
     imageRadius:        18,    // 9.17px × 1.912
     // Background
     bgColor:            '#000000',
@@ -243,15 +245,20 @@ const state = {
   // Layout Overlays
   showGraphics: true,
   showHeadline: true,
-  headlineLine1:      'Start with a prompt',
-  headlineLine2:      'End with a presentation',
-  headlineAlign:      'center',
-  headlineTracking:   -4.8,
-  headlineLineHeight: 1.1,
-  headlineFontSize:   120,
-  headlineFont:       '400',
-  headlineYPos:       206.36,
-  headlinePadding:    0,
+  headlineText:           'Start with a prompt\nEnd with a presentation',
+  headlineHighlightWords: '',
+  headlineHighlightColor: '#f66a24',
+  headlineTextColor:      '#ffffff',
+  headlineFillEnabled:    false,
+  headlineFillColor:      '#000000',
+  headlineFillOpacity:    0.5,
+  headlineAlign:          'center',
+  headlineTracking:       -4.8,
+  headlineLineHeight:     1.1,
+  headlineFontSize:       120,
+  headlineFont:           '400',
+  headlineYPos:           206.36,
+  headlinePadding:        0,
 
   showImage:       true,
   imageSrc:        '',
@@ -275,6 +282,7 @@ const state = {
 
   showFooter:      true,
   footerByline:    'Start for free today',
+  footerTextColor: '#ffffff',
   footerAlign:     'left',
   footerTracking:  -1.63,
   footerFont:      '500',

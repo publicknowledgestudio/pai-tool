@@ -597,10 +597,20 @@ const sketch = function(p) {
             ? imgEl
             : await _loadImg(imgSrc);
           ctx.save();
-          const ir = Math.max(0, rad - bw);
-          _rrPath(ctx, rect.x + bw, rect.y + bw, rect.w - bw * 2, rect.h - bw * 2, ir);
+          const ir  = Math.max(0, rad - bw);
+          const dw  = rect.w - bw * 2;
+          const dh  = rect.h - bw * 2;
+          _rrPath(ctx, rect.x + bw, rect.y + bw, dw, dh, ir);
           ctx.clip();
-          ctx.drawImage(loaded, rect.x + bw, rect.y + bw, rect.w - bw * 2, rect.h - bw * 2);
+          // Fill / cover mode — scale to fill, crop to fit (matches object-fit:cover)
+          const iw  = loaded.naturalWidth  || dw;
+          const ih  = loaded.naturalHeight || dh;
+          const s   = Math.max(dw / iw, dh / ih);
+          const sw  = iw * s;
+          const sh  = ih * s;
+          const ox  = rect.x + bw + (dw - sw) / 2;
+          const oy  = rect.y + bw + (dh - sh) / 2;
+          ctx.drawImage(loaded, ox, oy, sw, sh);
           ctx.restore();
         } catch (_) { /* image missing — leave dark bg */ }
       }
@@ -639,7 +649,7 @@ const sketch = function(p) {
     const padR      = 48.6 * scale;
     const fontSize  = 54.517 * scale;
     const tracking  = -1.6355 * scale;
-    const textColor = getTextColorForBg(state.bgColor);
+    const textColor = state.footerTextColor || '#ffffff';
 
     await document.fonts.ready;
 
@@ -671,19 +681,28 @@ const sketch = function(p) {
     const headEl = document.getElementById('overlay-headline');
     if (!headEl || headEl.style.display === 'none') return;
 
-    const DESIGN_W = 2696;
-    const scale    = (ab.width / DESIGN_W) * ES;
-    const EW       = ab.width * ES;
-    const fontSize = state.headlineFontSize * scale;
-    const tracking = state.headlineTracking * scale;
-    const padL     = state.headlinePadding * scale;
-    const padR     = state.headlinePadding * scale;
-    const textColor = getTextColorForBg(state.bgColor);
+    const DESIGN_W  = 2696;
+    const scale     = (ab.width / DESIGN_W) * ES;
+    const EW        = ab.width * ES;
+    const fontSize  = state.headlineFontSize * scale;
+    const tracking  = state.headlineTracking  * scale;
+    const padL      = state.headlinePadding   * scale;
+    const padR      = state.headlinePadding   * scale;
+    const textColor = state.headlineTextColor || '#ffffff';
+    const lineH     = fontSize * state.headlineLineHeight;
+
+    const headRect  = _xRect(headEl, ab, ES);
+
+    // ── Headline fill background ───────────────────────────────
+    if (state.headlineFillEnabled) {
+      const [fr, fg, fb] = hexToRgb(state.headlineFillColor || '#000000');
+      ctx.fillStyle = `rgba(${fr},${fg},${fb},${state.headlineFillOpacity})`;
+      ctx.fillRect(headRect.x, headRect.y, headRect.w, headRect.h);
+    }
 
     ctx.save();
     ctx.font         = `${state.headlineFont} ${fontSize}px "Innovators Grotesk", sans-serif`;
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${tracking}px`;
-    ctx.fillStyle    = textColor;
     ctx.textBaseline = 'top';
     ctx.textAlign    = state.headlineAlign === 'center' ? 'center' :
                        state.headlineAlign === 'right'  ? 'right'  : 'left';
@@ -692,13 +711,36 @@ const sketch = function(p) {
                   state.headlineAlign === 'right'  ? EW - padR :
                   padL;
 
-    const l1 = document.getElementById('headline-l1');
-    const l2 = document.getElementById('headline-l2');
-    [l1, l2].forEach(el => {
-      if (!el || !el.textContent) return;
-      const er = _xRect(el, ab, ES);
-      ctx.fillText(el.textContent, textX, er.y);
+    // ── Build highlight word set ───────────────────────────────
+    const hlWords = new Set(
+      (state.headlineHighlightWords || '')
+        .split(/[\s,]+/)
+        .map(w => w.trim().toLowerCase())
+        .filter(Boolean)
+    );
+    const hlColor = state.headlineHighlightColor || '#f66a24';
+
+    // ── Draw highlighted word rects from DOM spans ─────────────
+    // (DOM span positions are already scaled correctly via getBoundingClientRect)
+    if (hlWords.size > 0) {
+      const [hr, hg, hb] = hexToRgb(hlColor);
+      headEl.querySelectorAll('.headline-hl').forEach(span => {
+        const sr  = _xRect(span, ab, ES);
+        const pad = 4 * scale;
+        ctx.fillStyle = `rgb(${hr},${hg},${hb})`;
+        ctx.fillRect(sr.x - pad * 0.5, sr.y - pad * 0.5, sr.w + pad, sr.h + pad);
+      });
+    }
+
+    // ── Draw text lines ────────────────────────────────────────
+    const lines = (state.headlineText || '').split('\n');
+    ctx.fillStyle = textColor;
+    let y = headRect.y;
+    lines.forEach(line => {
+      if (line.trim()) ctx.fillText(line, textX, y);
+      y += lineH;
     });
+
     ctx.restore();
   }
 
