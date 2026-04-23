@@ -636,9 +636,9 @@ const sketch = function(p) {
     const scale    = (ab.width / DESIGN_W) * ES;
 
     // ── Background — solid replacement for backdrop-filter ──────
-    // (html2canvas does not support backdrop-filter;
-    //  here we composite a semi-transparent black over the already-drawn canvas.)
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    // backdrop-filter: blur(100px) is not exportable; approximate its
+    // darkening effect by using a higher opacity than the CSS 0.6 value.
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
 
     // Inset top highlight (matches CSS inset box-shadow)
@@ -691,14 +691,10 @@ const sketch = function(p) {
     const textColor = state.headlineTextColor || '#ffffff';
     const lineH     = fontSize * state.headlineLineHeight;
 
-    // ── Headline fill background ───────────────────────────────
-    // When fill is ON the overlay is at top:0 with internal padding, so its
-    // bounding rect starts at the canvas top edge. The #headline-text child
-    // is positioned inside via padding, giving the correct 112/105 Figma-px gaps.
-    const headRect = _xRect(headEl, ab, ES);
-    const textEl   = document.getElementById('headline-text');
-    // Use the inner text element's Y for the first line of text, so that
-    // padding-top (fill mode) or headlineYPos (no-fill mode) are both respected.
+    // ── Fill background (uses overlay bounding rect — includes padding) ──
+    const headRect   = _xRect(headEl, ab, ES);
+    const textEl     = document.getElementById('headline-text');
+    // textEl's y already accounts for fill padding-top or headlineYPos offset
     const textStartY = textEl ? _xRect(textEl, ab, ES).y : headRect.y;
 
     if (state.headlineFillEnabled) {
@@ -711,15 +707,40 @@ const sketch = function(p) {
     ctx.font         = `${state.headlineFont} ${fontSize}px "Innovators Grotesk", sans-serif`;
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${tracking}px`;
     ctx.textBaseline = 'top';
-    ctx.textAlign    = state.headlineAlign === 'center' ? 'center' :
-                       state.headlineAlign === 'right'  ? 'right'  : 'left';
+    ctx.textAlign    = 'left'; // always left; we compute x manually per line
 
-    const textX = state.headlineAlign === 'center' ? EW / 2 :
-                  state.headlineAlign === 'right'  ? EW - padR :
-                  padL;
+    // Available text width mirrors the DOM element's rendered width exactly,
+    // so canvas word-wrap matches the CSS pre-wrap line breaks.
+    const availW = textEl
+      ? textEl.getBoundingClientRect().width * ES
+      : EW - padL - padR;
 
-    // ── Build highlight word set ───────────────────────────────
-    const hlWords = new Set(
+    // ── Word-wrap a single paragraph to fit availW ────────────
+    function _wrapPara(para) {
+      if (!para) return [''];
+      const words = para.split(' ');
+      const out   = [];
+      let cur     = '';
+      for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (cur && ctx.measureText(test).width > availW) {
+          out.push(cur);
+          cur = w;
+        } else {
+          cur = test;
+        }
+      }
+      if (cur) out.push(cur);
+      return out;
+    }
+
+    // Respect explicit \n breaks, then word-wrap each paragraph
+    const wrappedLines = (state.headlineText || '')
+      .split('\n')
+      .flatMap(_wrapPara);
+
+    // ── Highlight word set ────────────────────────────────────
+    const hlWordSet = new Set(
       (state.headlineHighlightWords || '')
         .split(/[\s,]+/)
         .map(w => w.trim().toLowerCase())
@@ -727,26 +748,47 @@ const sketch = function(p) {
     );
     const hlColor = state.headlineHighlightColor || '#f66a24';
 
-    // ── Draw all text in base colour ───────────────────────────
-    const lines = (state.headlineText || '').split('\n');
-    ctx.fillStyle = textColor;
-    let y = textStartY;
-    lines.forEach(line => {
-      if (line.trim()) ctx.fillText(line, textX, y);
-      y += lineH;
-    });
+    const align = state.headlineAlign || 'center';
 
-    // ── Overdraw highlighted words in their text colour ─────────
-    // Span bounding rects give exact absolute positions; switch to
-    // left-align and use the span's x so text lands at the right spot.
-    if (hlWords.size > 0) {
-      const [hr, hg, hb] = hexToRgb(hlColor);
-      ctx.fillStyle = `rgb(${hr},${hg},${hb})`;
-      ctx.textAlign = 'left';
-      headEl.querySelectorAll('.headline-hl').forEach(span => {
-        const sr = _xRect(span, ab, ES);
-        ctx.fillText(span.textContent, sr.x, sr.y);
-      });
+    // X origin for a line given its full measured width
+    function _lineX(lineW) {
+      if (align === 'center') return (EW - lineW) / 2;
+      if (align === 'right')  return EW - padR - lineW;
+      return padL;
+    }
+
+    // ── Draw each wrapped line ────────────────────────────────
+    let y = textStartY;
+    for (const line of wrappedLines) {
+      if (!line) { y += lineH; continue; }
+
+      const lineW    = ctx.measureText(line).width;
+      const lineWordsArr = line.split(' ');
+      const hasHL    = hlWordSet.size > 0 &&
+                       lineWordsArr.some(w =>
+                         hlWordSet.has(w.toLowerCase().replace(/[^a-z0-9'-]/g, '')));
+
+      if (!hasHL) {
+        // Fast path: draw the whole line at once
+        ctx.fillStyle = textColor;
+        ctx.fillText(line, _lineX(lineW), y);
+      } else {
+        // Slow path: draw word-by-word so highlights get a different colour
+        let x = _lineX(lineW);
+        lineWordsArr.forEach((word, i) => {
+          if (i > 0) {
+            ctx.fillStyle = textColor;
+            ctx.fillText(' ', x, y);
+            x += ctx.measureText(' ').width;
+          }
+          const key = word.toLowerCase().replace(/[^a-z0-9'-]/g, '');
+          ctx.fillStyle = hlWordSet.has(key) ? hlColor : textColor;
+          ctx.fillText(word, x, y);
+          x += ctx.measureText(word).width;
+        });
+      }
+
+      y += lineH;
     }
 
     ctx.restore();
