@@ -894,10 +894,121 @@ function buildImageDistControls(sec) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// PRESETS  (localStorage persistence)
+// ══════════════════════════════════════════════════════════════
+const _PRESETS_KEY = 'pai-tool-presets-v1';
+
+function _loadPresets() {
+  try { return JSON.parse(localStorage.getItem(_PRESETS_KEY)) || []; }
+  catch { return []; }
+}
+function _savePresetsStore(list) {
+  localStorage.setItem(_PRESETS_KEY, JSON.stringify(list));
+}
+
+function buildPresetsSection(container) {
+  const { sec, content } = mkSection('Presets');
+
+  // ── Save row ────────────────────────────────────────────────
+  const saveRow = document.createElement('div');
+  saveRow.className = 'preset-save-row';
+
+  const nameInput = document.createElement('input');
+  nameInput.type        = 'text';
+  nameInput.className   = 'text-input';
+  nameInput.placeholder = 'Name this preset…';
+  nameInput.style.flex  = '1';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className   = 'seg-btn';
+  saveBtn.textContent = 'Save';
+  saveBtn.style.cssText = 'flex-shrink:0;padding:0 12px;height:30px;';
+
+  saveBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    const list = _loadPresets();
+    // Deep-copy state; drop transient fields that can't persist
+    const snap = JSON.parse(JSON.stringify({
+      ...state,
+      imageSrc:        '',   // blob URL won't survive a session
+      imageStyleOrder: null,
+    }));
+    list.unshift({ id: Date.now(), name, snap });
+    _savePresetsStore(list);
+    nameInput.value = '';
+    renderList();
+  });
+
+  // Also save on Enter
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveBtn.click(); });
+
+  saveRow.appendChild(nameInput);
+  saveRow.appendChild(saveBtn);
+  content.appendChild(saveRow);
+
+  // ── Preset list ─────────────────────────────────────────────
+  const listEl = document.createElement('div');
+  listEl.className = 'preset-list';
+  content.appendChild(listEl);
+
+  function renderList() {
+    const list = _loadPresets();
+    listEl.innerHTML = '';
+
+    if (list.length === 0) {
+      const msg = document.createElement('p');
+      msg.className   = 'preset-empty';
+      msg.textContent = 'No presets yet — configure the tool and save.';
+      listEl.appendChild(msg);
+      return;
+    }
+
+    list.forEach((preset, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'preset-chip';
+
+      const applyBtn = document.createElement('button');
+      applyBtn.className   = 'preset-name';
+      applyBtn.textContent = preset.name;
+      applyBtn.title       = 'Apply preset';
+      applyBtn.addEventListener('click', () => {
+        Object.assign(state, preset.snap);
+        syncControlsToState();
+        updateOverlays();
+        if (window._p5Resize) window._p5Resize();
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.className   = 'preset-del';
+      delBtn.textContent = '×';
+      delBtn.title       = 'Delete preset';
+      delBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const updated = _loadPresets();
+        updated.splice(idx, 1);
+        _savePresetsStore(updated);
+        renderList();
+      });
+
+      chip.appendChild(applyBtn);
+      chip.appendChild(delBtn);
+      listEl.appendChild(chip);
+    });
+  }
+
+  renderList();
+  container.appendChild(sec);
+}
+
+// ══════════════════════════════════════════════════════════════
 // BUILD GUI
 // ══════════════════════════════════════════════════════════════
 function buildGUI() {
   const scroll = document.getElementById('panel-scroll');
+
+  // ── Presets ───────────────────────────────────────────────
+  buildPresetsSection(scroll);
 
   // ── Canvas ────────────────────────────────────────────────
   const canvasSec = mkSection('Canvas');

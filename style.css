@@ -766,6 +766,69 @@ input[type=color]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0.1
 }
 
 /* ── Background Gradient Preset Buttons ──────────────────── */
+/* ── Presets ─────────────────────────────────────────────── */
+.preset-save-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.preset-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 6px 5px 10px;
+  transition: border-color 0.15s;
+}
+.preset-chip:hover { border-color: var(--accent); }
+
+.preset-name {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preset-name:hover { color: var(--accent); }
+
+.preset-del {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.preset-del:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+.preset-empty {
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+  padding: 10px 0;
+}
+
 .bg-grad-row {
   display: flex;
   gap: 6px;
