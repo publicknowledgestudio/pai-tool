@@ -18,6 +18,22 @@ const ASPECT_RATIOS = {
 //
 // 1:1 values derived from Figma node 95:50741 (1410×1410 canvas).
 // Conversion: value_in_state = figma_px × (2696 / 1410).
+// Original layout defaults (used by 4:5, 16:9, 9:16, 1.91:1).
+// Stored here so switching away from 1:1 restores the correct values.
+const _ORIGINAL_DEFAULTS = {
+  headlineFontSize:   120,
+  headlineYPos:       206.36,
+  headlineTracking:   -4.8,
+  headlineLineHeight: 1.1,
+  headlineAlign:      'center',
+  headlineFont:       '400',
+  headlinePadding:    0,
+  imageScale:         1.0,
+  imageYOffset:       0,
+  imageRadius:        12,
+  bgColor:            '#0c0c0f',
+};
+
 const ASPECT_RATIO_DEFAULTS = {
   '1:1': {
     // Headline — centred, large, ~11% from top
@@ -35,6 +51,10 @@ const ASPECT_RATIO_DEFAULTS = {
     // Background
     bgColor:            '#000000',
   },
+  '4:5':    _ORIGINAL_DEFAULTS,
+  '16:9':   _ORIGINAL_DEFAULTS,
+  '9:16':   _ORIGINAL_DEFAULTS,
+  '1.91:1': _ORIGINAL_DEFAULTS,
 };
 
 // ── Built-in Palettes ────────────────────────────────────────
@@ -199,7 +219,7 @@ const state = {
   opacity:      0.88,
   globalOpacity: false,
   blur:         0,
-  bgColor:      '#000000',
+  bgColor:      '#0c0c0f',
 
   // Background gradient mode
   bgGradientMode:   false,
@@ -226,19 +246,19 @@ const state = {
   headlineLine1:      'Start with a prompt',
   headlineLine2:      'End with a presentation',
   headlineAlign:      'center',
-  headlineTracking:   -7.0,
+  headlineTracking:   -4.8,
   headlineLineHeight: 1.1,
-  headlineFontSize:   175,
+  headlineFontSize:   120,
   headlineFont:       '400',
-  headlineYPos:       298,
+  headlineYPos:       206.36,
   headlinePadding:    0,
 
   showImage:       true,
   imageSrc:        '',
-  imageScale:      1.46,
-  imageYOffset:    604,
+  imageScale:      1.0,
+  imageYOffset:    0,
   imageStrokeStyle: 'marketing',
-  imageRadius:     18,              // clamped 0–40 in GUI
+  imageRadius:     12,              // clamped 0–40 in GUI
   imageStrokeOp:   1.0,
   imageStrokeWeight: 20,
 
