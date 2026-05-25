@@ -158,7 +158,7 @@ export const PALETTES = {
   custom: { label: 'Custom', stops: null },
 
   marketingWarm: {
-    label: 'Warm-Dark',
+    label: 'Primary',
     tone: 'warm',
     stops: [
       { stop: 0.00, color: '#112BA1' },
@@ -192,17 +192,7 @@ export const PALETTES = {
     ],
   },
 
-  // Warm-light palette — shapes work on light backgrounds
-  marketingWarmLight: {
-    label: 'Warm-Light',
-    tone: 'warm',
-    stops: [
-      { stop: 0.00, color: '#112BA1' },
-      { stop: 0.33, color: '#3A57BF' },
-      { stop: 0.66, color: '#6AA1F4' },
-      { stop: 1.00, color: '#B4DFFF' },
-    ],
-  },
+  // marketingWarmLight removed — Primary palette handles both modes.
 };
 
 // ── Background Gradient Presets — same stops as shape palettes ──
@@ -210,19 +200,14 @@ export const PALETTES = {
 // so the background gradient always matches what's on the shapes.
 export const BG_GRADIENTS = {
   marketingWarm: {
-    label: 'Warm Dark',
+    label: 'Primary Gradient',
     theme: 'warm',
     mode:  'dark',
     dir:   'vertical',
     get stops() { return JSON.parse(JSON.stringify(PALETTES.marketingWarm.stops)); },
   },
-  marketingWarmLight: {
-    label: 'Warm Light',
-    theme: 'warm',
-    mode:  'light',
-    dir:   'vertical',
-    get stops() { return JSON.parse(JSON.stringify(PALETTES.marketingWarmLight.stops)); },
-  },
+  // marketingWarmLight removed — the single Primary Gradient now serves
+  // both dark and light colour modes for the warm theme.
   marketingCool: {
     label: 'Cool Dark',
     theme: 'cool',

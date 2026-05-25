@@ -240,7 +240,7 @@ function buildGUI() {
         modeSeg.querySelectorAll('.ct-mode-btn').forEach(b =>
           b.classList.toggle('active', b.dataset.mode === val));
         const themePalKey = state.theme === 'warm'
-          ? (val === 'dark' ? 'marketingWarm' : 'marketingWarmLight')
+          ? 'marketingWarm'                            // single Primary palette serves both modes
           : (val === 'dark' ? 'marketingCool' : 'arctic');
         if (PALETTES[themePalKey]) selectPalette(themePalKey);
         applyPalette(state.palette);
@@ -309,7 +309,7 @@ function buildGUI() {
         // stale/cross-theme), force-pick the theme+mode-matched preset.
         if (state.bgGradientMode) {
           const themeMatchedKey = state.theme === 'warm'
-            ? (state.colorMode === 'light' ? 'marketingWarmLight' : 'marketingWarm')
+            ? 'marketingWarm'                              // single Primary gradient for warm
             : (state.colorMode === 'light' ? 'arctic'             : 'marketingCool');
           const def = BG_GRADIENTS[themeMatchedKey];
           const currentDef = BG_GRADIENTS[state.bgGradientPreset];
