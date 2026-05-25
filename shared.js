@@ -162,11 +162,10 @@ export const PALETTES = {
     tone: 'warm',
     stops: [
       { stop: 0.00, color: '#112BA1' },
-      { stop: 0.20, color: '#2237F9' },
-      { stop: 0.40, color: '#3A57BF' },
-      { stop: 0.60, color: '#6AA1F4' },
-      { stop: 0.80, color: '#B4DFFF' },
-      { stop: 1.00, color: '#E9EBFE' },
+      { stop: 0.25, color: '#2237F9' },
+      { stop: 0.50, color: '#3A57BF' },
+      { stop: 0.75, color: '#6AA1F4' },
+      { stop: 1.00, color: '#B4DFFF' },
     ],
   },
 
@@ -199,10 +198,9 @@ export const PALETTES = {
     tone: 'warm',
     stops: [
       { stop: 0.00, color: '#112BA1' },
-      { stop: 0.25, color: '#3A57BF' },
-      { stop: 0.50, color: '#6AA1F4' },
-      { stop: 0.75, color: '#B4DFFF' },
-      { stop: 1.00, color: '#E9EBFE' },
+      { stop: 0.33, color: '#3A57BF' },
+      { stop: 0.66, color: '#6AA1F4' },
+      { stop: 1.00, color: '#B4DFFF' },
     ],
   },
 };
@@ -250,7 +248,6 @@ export const BG_PALETTE_MAP = {
     { color: '#3A57BF', label: 'Sapphire' },
     { color: '#6AA1F4', label: 'Cornflower' },
     { color: '#B4DFFF', label: 'Sky' },
-    { color: '#E9EBFE', label: 'Powder' },
   ],
   'cool-dark': [
     { color: '#000D1F', label: 'Abyss' },
@@ -263,7 +260,6 @@ export const BG_PALETTE_MAP = {
   ],
   // Light mode swatches
   'warm-light': [
-    { color: '#E9EBFE', label: 'Powder' },
     { color: '#B4DFFF', label: 'Sky' },
     { color: '#6AA1F4', label: 'Cornflower' },
     { color: '#3A57BF', label: 'Sapphire' },
@@ -281,7 +277,6 @@ export const BG_PALETTE_MAP = {
   ],
   // Legacy keys (kept for backwards compatibility)
   warm: [
-    { color: '#E9EBFE', label: 'Powder' },
     { color: '#B4DFFF', label: 'Sky' },
     { color: '#6AA1F4', label: 'Cornflower' },
     { color: '#3A57BF', label: 'Sapphire' },
