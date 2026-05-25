@@ -607,7 +607,7 @@ function _escapeHTML(s) {
 function _renderHeadlineHTML() {
   const display = getDisplayText();
   const text    = display.headlineText || '';
-  const hlColor = state.headlineHighlightColor || '#f66a24';
+  const hlColor = state.headlineHighlightColor || '#2237F9';
 
   // ── Range-based path (current) ──────────────────────────────
   const ranges = Array.isArray(state.headlineHighlights) ? state.headlineHighlights : [];

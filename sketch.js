@@ -1106,7 +1106,7 @@ const sketch = function(p) {
 
     // ── Highlight word set ────────────────────────────────────
     const hlWordSet = parseHighlightWords(display.headlineHighlightWords);
-    const hlColor   = state.headlineHighlightColor || '#f66a24';
+    const hlColor   = state.headlineHighlightColor || '#2237F9';
 
     const align = state.headlineAlign || 'center';
 

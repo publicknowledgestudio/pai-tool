@@ -212,7 +212,7 @@ function buildGUI() {
     const circleRow = document.createElement('div');
     circleRow.className = 'theme-circle-row';
     [
-      { key: 'warm', color: '#F66A24', label: 'Warm' },
+      { key: 'warm', color: '#2237F9', label: 'Warm' },
       { key: 'cool', color: '#66A8FF', label: 'Cool' },
     ].forEach(({ key, color, label }) => {
       const btn = document.createElement('button');
@@ -704,17 +704,10 @@ function buildGUI() {
     ct.appendChild(mkSlider({ id:'ctrl-img-scale', label:'Scale',         min:0.1,   max:2,    step:0.01, key:'imageScale',   decimals:2, onChange: updateOverlays }));
     ct.appendChild(mkSlider({ id:'ctrl-img-y',     label:'Y-Axis Offset', min:-3000, max:3000, step:10,   key:'imageYOffset', decimals:0, onChange: updateOverlays }));
 
-    // ── Stroke ────────────────────────────────────────────
-    ct.appendChild(mkSubLabel('Stroke'));
-    ct.appendChild(mkSegmented({
-      id: 'ctrl-img-stroke', label: '', key: 'imageStrokeStyle',
-      options: [
-        ['marketing', `<span class="stroke-sw marketing"></span><span class="seg-caption">Warm</span>`,  'Marketing Warm'],
-        ['frosty',    `<span class="stroke-sw frosty"></span><span class="seg-caption">Frosty</span>`,   'Frosty Glass'],
-      ],
-      onChange: updateOverlays,
-    }));
+    // Stroke style segmented removed — Warm option dropped at client
+    // request, leaving only Frosty, so the toggle has no use case.
     // Stroke weight + stroke opacity sliders removed — locked to 12 / 100%.
+    state.imageStrokeStyle  = 'frosty';
     state.imageStrokeWeight = 12;
     state.imageStrokeOp     = 1.0;
     ct.appendChild(mkSlider({ id:'ctrl-img-rad', label:'Corner Radius', min:0, max:40, step:1, key:'imageRadius',     decimals:0, onChange: updateOverlays }));

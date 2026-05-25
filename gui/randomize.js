@@ -155,7 +155,8 @@ export function randomize() {
 
   const bgs = getActiveBgPresets();
   state.bgColor = bgs[Math.floor(Math.random()*bgs.length)].color;
-  state.imageStrokeStyle = (state.theme === 'cool') ? 'frosty' : 'marketing';
+  // Stroke style locked to 'frosty' — Warm option removed.
+  state.imageStrokeStyle = 'frosty';
 
   // ── Defensive theme sync ─────────────────────────────────
   // Belt-and-braces: confirm palette + bg gradient + bgColor are all in
@@ -277,7 +278,7 @@ export function syncControlsToState() {
     ['ctrl-curve',         'curveType'],
     ['ctrl-palette-mode',  'paletteMode'],
     ['ctrl-img-dist-mode','imageDistMode'],
-    ['ctrl-img-stroke',   'imageStrokeStyle'],
+    // ctrl-img-stroke removed — locked to 'frosty'
     // ctrl-hl-align / ctrl-hl-font removed — locked to center/regular
   ].forEach(([id, key]) => {
     const seg = document.getElementById(id);
@@ -357,6 +358,8 @@ export function syncControlsToState() {
   // Text Colour Opacity slider removed — normalise to full opacity.
   state.headlineTextOpacity = 1.0;
   state.footerTextOpacity   = 1.0;
+  // Stroke style: Warm option removed — lock to frosty.
+  state.imageStrokeStyle    = 'frosty';
   // Slide count is restricted to odd numbers (1, 3, 5, 7, 9)
   let n = Math.max(1, Math.min(9, Math.floor(state.imageMultiCount)));
   if (n % 2 === 0) n = Math.min(9, n + 1);
@@ -414,7 +417,7 @@ export function _applyTheme(v) {
   state.theme = v;
   const firstPal = Object.entries(PALETTES).find(([, p]) => p.tone === v);
   if (firstPal) { state.palette = firstPal[0]; applyPalette(firstPal[0]); }
-  state.imageStrokeStyle = (v === 'cool') ? 'frosty' : 'marketing';
+  state.imageStrokeStyle = 'frosty';
   if (state.bgGradientMode && state.bgGradientPreset) {
     const currentBgTheme = BG_GRADIENTS[state.bgGradientPreset]?.theme;
     if (currentBgTheme !== v) {

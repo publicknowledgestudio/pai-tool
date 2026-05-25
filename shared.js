@@ -47,7 +47,7 @@ const _ASPECT_DEFAULTS_BASE = {
   headlineAlign:        'center',
   headlineFont:         '400',
   headlineFillEnabled:  true,
-  bgColor:              '#361E1C',
+  bgColor:              '#112BA1',
   headlineLineHeight:   1.1,   // landscape aspects override to 1.15
   imageRadius:          12,    // 1:1 and 9:16 override to 18
 };
@@ -161,12 +161,12 @@ export const PALETTES = {
     label: 'Warm-Dark',
     tone: 'warm',
     stops: [
-      { stop: 0.00, color: '#ffb96e' },
-      { stop: 0.20, color: '#ffa958' },
-      { stop: 0.40, color: '#f66a24' },
-      { stop: 0.60, color: '#f65324' },
-      { stop: 0.80, color: '#df490b' },
-      { stop: 1.00, color: '#361E1C' },
+      { stop: 0.00, color: '#112BA1' },
+      { stop: 0.20, color: '#2237F9' },
+      { stop: 0.40, color: '#3A57BF' },
+      { stop: 0.60, color: '#6AA1F4' },
+      { stop: 0.80, color: '#B4DFFF' },
+      { stop: 1.00, color: '#E9EBFE' },
     ],
   },
 
@@ -193,16 +193,16 @@ export const PALETTES = {
     ],
   },
 
-  // Temporary warm-light palette — shapes work on light backgrounds
+  // Warm-light palette — shapes work on light backgrounds
   marketingWarmLight: {
     label: 'Warm-Light',
     tone: 'warm',
     stops: [
-      { stop: 0.00, color: '#FFE0CC' },
-      { stop: 0.20, color: '#FFB96E' },
-      { stop: 0.50, color: '#F88030' },
-      { stop: 0.75, color: '#F66A24' },
-      { stop: 1.00, color: '#DC4A00' },
+      { stop: 0.00, color: '#112BA1' },
+      { stop: 0.25, color: '#3A57BF' },
+      { stop: 0.50, color: '#6AA1F4' },
+      { stop: 0.75, color: '#B4DFFF' },
+      { stop: 1.00, color: '#E9EBFE' },
     ],
   },
 };
@@ -245,12 +245,12 @@ export const BG_GRADIENTS = {
 export const BG_PALETTE_MAP = {
   // Dark mode swatches (default)
   'warm-dark': [
-    { color: '#361E1C', label: 'Dark Umber' },
-    { color: '#DF490B', label: 'Ember' },
-    { color: '#F65324', label: 'Flame' },
-    { color: '#F66A24', label: 'Orange' },
-    { color: '#FFB96E', label: 'Sand' },
-    { color: '#FFF0E5', label: 'Warm White' },
+    { color: '#112BA1', label: 'Deep Indigo' },
+    { color: '#2237F9', label: 'Royal Blue' },
+    { color: '#3A57BF', label: 'Sapphire' },
+    { color: '#6AA1F4', label: 'Cornflower' },
+    { color: '#B4DFFF', label: 'Sky' },
+    { color: '#E9EBFE', label: 'Powder' },
   ],
   'cool-dark': [
     { color: '#000D1F', label: 'Abyss' },
@@ -263,13 +263,12 @@ export const BG_PALETTE_MAP = {
   ],
   // Light mode swatches
   'warm-light': [
-    { color: '#FFF0E5', label: 'Warm White' },
-    { color: '#FFE0CC', label: 'Peach Cream' },
-    { color: '#FFB96E', label: 'Sand' },
-    { color: '#F88030', label: 'Tangerine' },
-    { color: '#F66A24', label: 'Orange' },
-    { color: '#DC4A00', label: 'Rust' },
-    { color: '#A83200', label: 'Sienna' },
+    { color: '#E9EBFE', label: 'Powder' },
+    { color: '#B4DFFF', label: 'Sky' },
+    { color: '#6AA1F4', label: 'Cornflower' },
+    { color: '#3A57BF', label: 'Sapphire' },
+    { color: '#2237F9', label: 'Royal Blue' },
+    { color: '#112BA1', label: 'Deep Indigo' },
   ],
   'cool-light': [
     { color: '#EEF6FF', label: 'Alice Blue' },
@@ -282,12 +281,12 @@ export const BG_PALETTE_MAP = {
   ],
   // Legacy keys (kept for backwards compatibility)
   warm: [
-    { color: '#FFF0E5', label: 'Warm White' },
-    { color: '#FFB96E', label: 'Sand' },
-    { color: '#F66A24', label: 'Orange' },
-    { color: '#F65324', label: 'Flame' },
-    { color: '#DF490B', label: 'Ember' },
-    { color: '#361E1C', label: 'Dark Umber' },
+    { color: '#E9EBFE', label: 'Powder' },
+    { color: '#B4DFFF', label: 'Sky' },
+    { color: '#6AA1F4', label: 'Cornflower' },
+    { color: '#3A57BF', label: 'Sapphire' },
+    { color: '#2237F9', label: 'Royal Blue' },
+    { color: '#112BA1', label: 'Deep Indigo' },
   ],
   cool: [
     { color: '#CAE2FF', label: 'Ice Blue' },
@@ -368,17 +367,19 @@ export const state = {
   opacity:      0.88,
   globalOpacity: false,
   blur:         0,
-  bgColor:      '#361E1C',  // Warm-Dark "Dark Umber" — default sits in the warm palette
+  bgColor:      '#112BA1',  // Warm-Dark "Deep Indigo" — default sits in the warm palette
 
   // Background gradient mode
   bgGradientMode:   false,
   bgGradientPreset: null,
   bgGradientStops:  [],
   bgGradientDir:    'vertical',
-  bgGradientFlip:   false,
+  // Default to flipped so the warm palette renders deep → light in the
+  // intended direction without the user having to flip manually.
+  bgGradientFlip:   true,
 
-  // Bar gradient flip
-  barFlipGradient: false,
+  // Bar gradient flip — also flipped by default to match.
+  barFlipGradient: true,
 
   // ── Inner Glow (no spread — uniform across entire shape) ──
   innerGlow:          false,
@@ -398,7 +399,7 @@ export const state = {
   // Each entry { start, end }; the renderer wraps just those chars,
   // so the same word can be highlighted in one place and not in another.
   headlineHighlights:    [],
-  headlineHighlightColor: '#f66a24',
+  headlineHighlightColor: '#2237F9',
   headlineTextBase:       '#ffffff',   // '#050505' | '#ffffff' — two-state toggle
   headlineTextOpacity:    1.0,          // 0–1, applied on top of base
   headlineTextColor:      '#ffffff',   // computed by applyTextAdaptation(), do not set manually
