@@ -633,6 +633,10 @@ function renderImageComposition(p) {
 // ── p5 Instance ──────────────────────────────────────────────
 const sketch = function(p) {
   p.setup = function() {
+    // pixelDensity 2 — keeps shapes crisp on non-retina displays and
+    // gives the 2x export pipeline a 1:1 source so drawImage doesn't
+    // bilinear-soften every rectangle/circle when upscaling.
+    p.pixelDensity(2);
     computeCanvasDimensions();
     p.createCanvas(cw, ch).parent('p5-target');
     p.noLoop();
@@ -651,6 +655,10 @@ const sketch = function(p) {
         if (!window._pg || window._pg.width !== cw || window._pg.height !== ch) {
           if (window._pg) window._pg.remove();
           window._pg = p.createGraphics(cw, ch);
+          // Match sketch density so the off-screen buffer's backing
+          // store is the same resolution as the main canvas — otherwise
+          // p.image() bilinears the comp when compositing.
+          window._pg.pixelDensity(2);
         }
         const pg = window._pg;
         pg.clear();
