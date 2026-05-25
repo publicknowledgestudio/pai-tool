@@ -39,13 +39,16 @@ import {
 // thicker bar grids. Falls back to the generic ranges if an aspect
 // isn't listed (e.g. a custom value).
 const _ASPECT_RANGES = {
-  '1:1':    { rectCount: [40, 130], circleCount: [8, 14], circleDiameter: [950, 1500] },
-  '4:5':    { rectCount: [60, 150], circleCount: [8, 13], circleDiameter: [600, 1300] },
-  '16:9':   { rectCount: [60, 160], circleCount: [8, 14], circleDiameter: [700, 1500] },
-  '1.91:1': { rectCount: [60, 160], circleCount: [8, 14], circleDiameter: [700, 1500] },
-  '9:16':   { rectCount: [40, 110], circleCount: [8, 16], circleDiameter: [500, 1300] },
+  // Rect count min lowered to 8 (square/portrait) or 12 (wide) so the
+  // shuffle can produce sparse low-count grids in addition to dense
+  // ones. Maximums retained.
+  '1:1':    { rectCount: [8,  130], circleCount: [8, 14], circleDiameter: [950, 1500] },
+  '4:5':    { rectCount: [8,  150], circleCount: [8, 13], circleDiameter: [600, 1300] },
+  '16:9':   { rectCount: [12, 160], circleCount: [8, 14], circleDiameter: [700, 1500] },
+  '1.91:1': { rectCount: [12, 160], circleCount: [8, 14], circleDiameter: [700, 1500] },
+  '9:16':   { rectCount: [8,  110], circleCount: [8, 16], circleDiameter: [500, 1300] },
 };
-const _DEFAULT_RANGES = { rectCount: [10, 70], circleCount: [8, 20], circleDiameter: [200, 1400] };
+const _DEFAULT_RANGES = { rectCount: [8, 70], circleCount: [8, 20], circleDiameter: [200, 1400] };
 
 function _randInt([lo, hi]) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
 
