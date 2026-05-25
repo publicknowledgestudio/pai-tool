@@ -400,17 +400,20 @@ export function enforceFillCoupling() {
       symRow.removeAttribute('title');
     }
 
-    // ── Mirror lock when fill ON + baseline left/right ───────
+    // ── Mirror lock when fill ON + baseline horizontal OR 'top' ──
     // A left/right baseline without mirror has no valid use case
     // (single-edge stack with no counterweight reads as broken).
-    // Force mirror on and grey out the toggle — same rule as fill-off
-    // mode, but only on the horizontal baselines where it applies.
-    if (horizontalBaseline) {
+    // The downward-growth baseline ('top') is also locked: rectangle
+    // mode hanging from the top edge only reads cleanly when mirrored.
+    const topDownward = state.compositionType === 'rectangle' && state.baseline === 'top';
+    if (horizontalBaseline || topDownward) {
       state.mirrorY = true;
       if (mirInp) mirInp.checked = true;
       if (mirRow) {
         mirRow.classList.add('locked');
-        mirRow.title = 'Mirror Axis is required with a left/right baseline';
+        mirRow.title = topDownward
+          ? 'Mirror Axis is required with a downward (top) baseline'
+          : 'Mirror Axis is required with a left/right baseline';
       }
     } else if (mirRow) {
       mirRow.classList.remove('locked');
